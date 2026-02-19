@@ -6,7 +6,6 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { careRecipient, medications, providers } from "@/data/mockData";
 import { format, differenceInYears } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
 
 const Emergency = () => {
   const [showOnScreen, setShowOnScreen] = useState(false);
@@ -35,16 +34,13 @@ const Emergency = () => {
       `INSURANCE: ${careRecipient.insurance.carrier} / #${careRecipient.insurance.policyNumber}`,
       `PREFERRED HOSPITAL: ${careRecipient.preferredHospital}`,
     ];
-
     if (careRecipient.standingInstructions?.length) {
       lines.push(``, `STANDING INSTRUCTIONS:`);
       careRecipient.standingInstructions.forEach(i => lines.push(`• ${i}`));
     }
-
     lines.push(``, `EMERGENCY CONTACTS:`);
     careRecipient.emergencyContacts.forEach(c => lines.push(`• ${c.name} (${c.relationship}) ${c.phone}`));
     lines.push(``, `Last updated: ${format(new Date(), "MMM d, yyyy")}`);
-
     return lines.join("\n");
   };
 
@@ -73,51 +69,39 @@ const Emergency = () => {
       >
         <div className="max-w-lg mx-auto space-y-4">
           <p className="text-sm opacity-60 text-center">Tap anywhere to close</p>
-
           <h1 className="text-3xl font-bold text-center">{careRecipient.name}</h1>
           <p className="text-xl text-center opacity-80">Age {age} • DOB {format(careRecipient.dateOfBirth, "MM/dd/yyyy")}</p>
-
           <Separator className="bg-background/20" />
-
           <div>
             <h2 className="text-lg font-bold text-destructive-foreground bg-destructive inline-block px-2 py-0.5 rounded mb-2">ALLERGIES</h2>
             {careRecipient.allergies.map((a, i) => (
               <p key={i} className="text-xl font-semibold">⚠️ {a.name} — {a.reaction || a.severity}</p>
             ))}
           </div>
-
           <Separator className="bg-background/20" />
-
           <div>
             <h2 className="text-lg font-bold opacity-70 mb-2">CONDITIONS</h2>
             <p className="text-xl">{careRecipient.medicalConditions.join(" • ")}</p>
           </div>
-
           <Separator className="bg-background/20" />
-
           <div>
             <h2 className="text-lg font-bold opacity-70 mb-2">MEDICATIONS</h2>
             {activeMedications.map(m => (
               <p key={m.id} className="text-lg mb-1">• {m.name} {m.dosage} — {m.frequency}</p>
             ))}
           </div>
-
           <Separator className="bg-background/20" />
-
           <div>
             <h2 className="text-lg font-bold opacity-70 mb-2">DOCTORS</h2>
             {doctors.map(d => (
               <p key={d.id} className="text-lg mb-1">• {d.name} ({d.specialty}) — {d.phone}</p>
             ))}
           </div>
-
           <Separator className="bg-background/20" />
-
           <div>
             <h2 className="text-lg font-bold opacity-70 mb-2">INSURANCE</h2>
             <p className="text-xl">{careRecipient.insurance.carrier} — #{careRecipient.insurance.policyNumber}</p>
           </div>
-
           {careRecipient.standingInstructions?.length ? (
             <>
               <Separator className="bg-background/20" />
@@ -129,9 +113,7 @@ const Emergency = () => {
               </div>
             </>
           ) : null}
-
           <Separator className="bg-background/20" />
-
           <div>
             <h2 className="text-lg font-bold opacity-70 mb-2">EMERGENCY CONTACTS</h2>
             {careRecipient.emergencyContacts.map(c => (
@@ -147,182 +129,172 @@ const Emergency = () => {
   return (
     <AppLayout>
       <div className="space-y-5 pb-24 md:pb-6">
-        {/* Hero banner */}
-        <div className="rounded-2xl gradient-emergency p-6 text-center">
-          <div className="w-14 h-14 rounded-full bg-background/20 flex items-center justify-center mx-auto mb-3">
-            <Shield className="h-7 w-7 text-destructive-foreground" />
+        {/* Hero — full width, left-aligned identity */}
+        <div className="rounded-2xl gradient-emergency p-6 md:p-8 flex items-center gap-5">
+          <div className="w-16 h-16 rounded-full bg-background/20 flex items-center justify-center flex-shrink-0">
+            <Shield className="h-8 w-8 text-destructive-foreground" />
           </div>
-          <h1 className="text-2xl font-bold text-destructive-foreground">Mom's ER Card</h1>
-          <p className="text-destructive-foreground/80 text-sm mt-1">
-            Show this to any medical professional
-          </p>
+          <div className="flex-1">
+            <h1 className="text-2xl md:text-3xl font-bold text-destructive-foreground">{careRecipient.name}</h1>
+            <p className="text-destructive-foreground/80 text-sm">
+              Age {age} • DOB: {format(careRecipient.dateOfBirth, "MM/dd/yyyy")} • {careRecipient.preferredHospital}
+            </p>
+          </div>
         </div>
 
-        {/* Share actions */}
-        <div className="grid grid-cols-3 gap-2">
-          <Button onClick={handleShare} variant="outline" className="flex-col h-auto py-3 gap-1.5 text-xs font-medium">
+        {/* Share bar — sticky feel */}
+        <div className="flex gap-2">
+          <Button onClick={handleShare} className="flex-1 gap-2 gradient-primary text-primary-foreground h-11">
             <Share2 className="h-4 w-4" />
-            Text This
+            Text This Info
           </Button>
-          <Button onClick={handleCopy} variant="outline" className="flex-col h-auto py-3 gap-1.5 text-xs font-medium">
+          <Button onClick={handleCopy} variant="outline" className="gap-2 h-11">
             {copied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
-            {copied ? "Copied!" : "Copy All"}
+            {copied ? "Copied" : "Copy"}
           </Button>
-          <Button onClick={() => setShowOnScreen(true)} variant="outline" className="flex-col h-auto py-3 gap-1.5 text-xs font-medium">
+          <Button onClick={() => setShowOnScreen(true)} variant="outline" className="gap-2 h-11">
             <Eye className="h-4 w-4" />
-            Show on Screen
+            Screen
           </Button>
         </div>
 
-        {/* Person card */}
-        <div className="bg-card rounded-2xl border border-border p-5 shadow-card">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-full bg-secondary flex items-center justify-center">
-              <User className="h-7 w-7 text-muted-foreground" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-foreground">{careRecipient.name}</h2>
-              <p className="text-muted-foreground">
-                Age {age} • DOB: {format(careRecipient.dateOfBirth, "MM/dd/yyyy")}
-              </p>
+        {/* Allergies — full-width alert strip, not a card */}
+        <div className="rounded-xl bg-destructive/10 border border-destructive/25 px-5 py-4 flex items-start gap-4">
+          <AlertCircle className="h-5 w-5 text-destructive mt-0.5 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-xs font-semibold text-destructive uppercase tracking-wider mb-1.5">Allergies</p>
+            <div className="flex flex-wrap gap-x-4 gap-y-1">
+              {careRecipient.allergies.map((a, i) => (
+                <span key={i} className="text-foreground font-semibold">
+                  {a.name} <span className="font-normal text-muted-foreground">({a.reaction || a.severity})</span>
+                </span>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* Allergies — most prominent */}
-        <div className="bg-destructive/8 border-2 border-destructive/30 rounded-2xl p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <AlertCircle className="h-5 w-5 text-destructive" />
-            <h3 className="font-bold text-destructive">Allergies</h3>
+        {/* Two-column: Conditions + Insurance side by side */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {/* Conditions */}
+          <div className="bg-card rounded-xl border border-border p-5 shadow-card">
+            <div className="flex items-center gap-2 mb-3">
+              <Heart className="h-4 w-4 text-primary" />
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Conditions</p>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {careRecipient.medicalConditions.map((c, i) => (
+                <span key={i} className="bg-secondary text-foreground text-xs px-2.5 py-1 rounded-full font-medium">{c}</span>
+              ))}
+            </div>
           </div>
-          <div className="space-y-2">
-            {careRecipient.allergies.map((allergy, idx) => (
-              <div key={idx} className="flex items-baseline gap-2">
-                <span className="text-destructive text-lg">⚠️</span>
-                <div>
-                  <span className="font-semibold text-foreground">{allergy.name}</span>
-                  <span className="text-muted-foreground"> — {allergy.reaction || allergy.severity}</span>
-                </div>
-              </div>
-            ))}
+
+          {/* Insurance */}
+          <div className="bg-card rounded-xl border border-border p-5 shadow-card">
+            <div className="flex items-center gap-2 mb-3">
+              <CreditCard className="h-4 w-4 text-primary" />
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Insurance</p>
+            </div>
+            <p className="font-semibold text-foreground">{careRecipient.insurance.carrier}</p>
+            <p className="text-sm text-muted-foreground">#{careRecipient.insurance.policyNumber}</p>
+            {careRecipient.insurance.medicare && (
+              <p className="text-sm text-muted-foreground mt-1">Medicare: {careRecipient.insurance.medicare}</p>
+            )}
           </div>
         </div>
 
-        {/* Conditions */}
-        <Section icon={Heart} title="Conditions">
-          <div className="flex flex-wrap gap-2">
-            {careRecipient.medicalConditions.map((condition, idx) => (
-              <span key={idx} className="bg-secondary text-foreground text-sm px-3 py-1.5 rounded-full font-medium">
-                {condition}
-              </span>
-            ))}
+        {/* Medications — compact table-like layout */}
+        <div className="bg-card rounded-xl border border-border shadow-card overflow-hidden">
+          <div className="flex items-center gap-2 px-5 py-3 border-b border-border">
+            <Pill className="h-4 w-4 text-primary" />
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Current Medications</p>
+            <span className="ml-auto text-xs text-muted-foreground">{activeMedications.length} active</span>
           </div>
-        </Section>
-
-        {/* Current Medications */}
-        <Section icon={Pill} title="Current Medications">
-          <div className="space-y-2.5">
+          <div className="divide-y divide-border">
             {activeMedications.map((med) => (
-              <div key={med.id} className="flex items-start gap-3">
-                <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0" />
-                <div>
-                  <p className="font-semibold text-foreground">{med.name} {med.dosage}</p>
-                  <p className="text-sm text-muted-foreground">{med.frequency} — {med.purpose}</p>
+              <div key={med.id} className="px-5 py-3 flex items-baseline justify-between gap-4">
+                <div className="min-w-0">
+                  <span className="font-semibold text-foreground">{med.name} {med.dosage}</span>
+                  <span className="text-muted-foreground text-sm ml-2">— {med.frequency}</span>
                 </div>
+                <span className="text-xs text-muted-foreground flex-shrink-0">{med.purpose}</span>
               </div>
             ))}
           </div>
-        </Section>
+        </div>
 
-        {/* Standing instructions */}
+        {/* Standing Instructions — if any, horizontal banner style */}
         {careRecipient.standingInstructions?.length ? (
-          <Section icon={ClipboardList} title="Standing Instructions">
-            <div className="space-y-2">
-              {careRecipient.standingInstructions.map((inst, idx) => (
-                <div key={idx} className="flex items-start gap-3">
-                  <div className="w-2 h-2 rounded-full bg-warning mt-2 flex-shrink-0" />
-                  <p className="text-foreground font-medium">{inst}</p>
+          <div className="bg-warning/8 border border-warning/25 rounded-xl px-5 py-4">
+            <div className="flex items-center gap-2 mb-2">
+              <ClipboardList className="h-4 w-4 text-warning" />
+              <p className="text-xs font-semibold text-warning uppercase tracking-wider">Standing Instructions</p>
+            </div>
+            <div className="space-y-1.5">
+              {careRecipient.standingInstructions.map((inst, i) => (
+                <p key={i} className="text-foreground font-medium text-sm">→ {inst}</p>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {/* Two-column: Doctors + Emergency Contacts */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {/* Doctors */}
+          <div className="bg-card rounded-xl border border-border shadow-card overflow-hidden">
+            <div className="flex items-center gap-2 px-5 py-3 border-b border-border">
+              <Building2 className="h-4 w-4 text-primary" />
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Doctors</p>
+            </div>
+            <div className="divide-y divide-border">
+              {doctors.map((doc) => (
+                <div key={doc.id} className="px-5 py-3 flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold text-foreground text-sm">{doc.name}</p>
+                    <p className="text-xs text-muted-foreground">{doc.specialty}</p>
+                  </div>
+                  <a href={`tel:${doc.phone}`}>
+                    <Button size="sm" variant="ghost" className="h-8 gap-1 text-xs text-primary">
+                      <Phone className="h-3 w-3" />
+                      Call
+                    </Button>
+                  </a>
                 </div>
               ))}
             </div>
-          </Section>
-        ) : null}
+          </div>
 
-        {/* Doctors */}
-        <Section icon={Building2} title="Doctors">
-          <div className="space-y-3">
-            {doctors.map((doc) => (
-              <div key={doc.id} className="flex items-center justify-between">
-                <div>
-                  <p className="font-semibold text-foreground">{doc.name}</p>
-                  <p className="text-sm text-muted-foreground">{doc.specialty}</p>
+          {/* Emergency Contacts */}
+          <div className="bg-card rounded-xl border border-border shadow-card overflow-hidden">
+            <div className="flex items-center gap-2 px-5 py-3 border-b border-border">
+              <Phone className="h-4 w-4 text-primary" />
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Emergency Contacts</p>
+            </div>
+            <div className="divide-y divide-border">
+              {careRecipient.emergencyContacts.map((contact) => (
+                <div key={contact.priority} className="px-5 py-3 flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold text-foreground text-sm">{contact.name}</p>
+                    <p className="text-xs text-muted-foreground">{contact.relationship}</p>
+                  </div>
+                  <a href={`tel:${contact.phone}`}>
+                    <Button size="sm" variant="ghost" className="h-8 gap-1 text-xs text-primary">
+                      <Phone className="h-3 w-3" />
+                      Call
+                    </Button>
+                  </a>
                 </div>
-                <a href={`tel:${doc.phone}`}>
-                  <Button size="sm" variant="ghost" className="gap-1.5 text-primary">
-                    <Phone className="h-3.5 w-3.5" />
-                    {doc.phone}
-                  </Button>
-                </a>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </Section>
+        </div>
 
-        {/* Emergency Contacts */}
-        <Section icon={Phone} title="Emergency Contacts">
-          <div className="space-y-3">
-            {careRecipient.emergencyContacts.map((contact) => (
-              <div key={contact.priority} className="flex items-center justify-between">
-                <div>
-                  <p className="font-semibold text-foreground">{contact.name}</p>
-                  <p className="text-sm text-muted-foreground">{contact.relationship}</p>
-                </div>
-                <a href={`tel:${contact.phone}`}>
-                  <Button size="sm" variant="ghost" className="gap-1.5 text-primary">
-                    <Phone className="h-3.5 w-3.5" />
-                    {contact.phone}
-                  </Button>
-                </a>
-              </div>
-            ))}
-          </div>
-        </Section>
-
-        {/* Insurance */}
-        <Section icon={CreditCard} title="Insurance">
-          <div className="space-y-1">
-            <p className="font-semibold text-foreground">{careRecipient.insurance.carrier}</p>
-            <p className="text-sm text-muted-foreground">Policy: {careRecipient.insurance.policyNumber}</p>
-            {careRecipient.insurance.medicare && (
-              <p className="text-sm text-muted-foreground">Medicare: {careRecipient.insurance.medicare}</p>
-            )}
-          </div>
-        </Section>
-
-        {/* Hospital */}
-        <Section icon={Building2} title="Preferred Hospital">
-          <p className="font-semibold text-foreground">{careRecipient.preferredHospital}</p>
-        </Section>
-
-        {/* Footer */}
-        <p className="text-center text-xs text-muted-foreground pt-2">
+        {/* Footer timestamp */}
+        <p className="text-center text-[11px] text-muted-foreground pt-1">
           Auto-updated • {format(new Date(), "MMM d, yyyy 'at' h:mm a")}
         </p>
       </div>
     </AppLayout>
   );
 };
-
-function Section({ icon: Icon, title, children }: { icon: React.ElementType; title: string; children: React.ReactNode }) {
-  return (
-    <div className="bg-card rounded-2xl border border-border p-5 shadow-card">
-      <div className="flex items-center gap-2 mb-3">
-        <Icon className="h-4 w-4 text-primary" />
-        <h3 className="font-semibold text-foreground text-sm">{title}</h3>
-      </div>
-      {children}
-    </div>
-  );
-}
 
 export default Emergency;
