@@ -14,16 +14,173 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      care_circle_members: {
+        Row: {
+          care_circle_id: string
+          created_at: string
+          id: string
+          invited_by: string | null
+          role: Database["public"]["Enums"]["circle_role"]
+          user_id: string
+        }
+        Insert: {
+          care_circle_id: string
+          created_at?: string
+          id?: string
+          invited_by?: string | null
+          role?: Database["public"]["Enums"]["circle_role"]
+          user_id: string
+        }
+        Update: {
+          care_circle_id?: string
+          created_at?: string
+          id?: string
+          invited_by?: string | null
+          role?: Database["public"]["Enums"]["circle_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "care_circle_members_care_circle_id_fkey"
+            columns: ["care_circle_id"]
+            isOneToOne: false
+            referencedRelation: "care_circles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      care_circles: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      care_recipients: {
+        Row: {
+          allergies: Json | null
+          care_circle_id: string
+          created_at: string
+          date_of_birth: string | null
+          id: string
+          insurance_carrier: string | null
+          insurance_group_number: string | null
+          insurance_policy_number: string | null
+          medical_conditions: string[] | null
+          name: string
+          photo_url: string | null
+          preferred_hospital: string | null
+          preferred_pharmacy: string | null
+          primary_care_doctor: string | null
+          standing_instructions: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          allergies?: Json | null
+          care_circle_id: string
+          created_at?: string
+          date_of_birth?: string | null
+          id?: string
+          insurance_carrier?: string | null
+          insurance_group_number?: string | null
+          insurance_policy_number?: string | null
+          medical_conditions?: string[] | null
+          name: string
+          photo_url?: string | null
+          preferred_hospital?: string | null
+          preferred_pharmacy?: string | null
+          primary_care_doctor?: string | null
+          standing_instructions?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          allergies?: Json | null
+          care_circle_id?: string
+          created_at?: string
+          date_of_birth?: string | null
+          id?: string
+          insurance_carrier?: string | null
+          insurance_group_number?: string | null
+          insurance_policy_number?: string | null
+          medical_conditions?: string[] | null
+          name?: string
+          photo_url?: string | null
+          preferred_hospital?: string | null
+          preferred_pharmacy?: string | null
+          primary_care_doctor?: string | null
+          standing_instructions?: string[] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "care_recipients_care_circle_id_fkey"
+            columns: ["care_circle_id"]
+            isOneToOne: false
+            referencedRelation: "care_circles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string
+          first_name: string | null
+          id: string
+          last_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email: string
+          first_name?: string | null
+          id: string
+          last_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_circle_admin: { Args: { _circle_id: string }; Returns: boolean }
+      is_circle_member: { Args: { _circle_id: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      circle_role: "admin" | "caregiver" | "view-only"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +307,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      circle_role: ["admin", "caregiver", "view-only"],
+    },
   },
 } as const
