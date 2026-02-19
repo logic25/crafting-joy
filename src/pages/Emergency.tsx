@@ -72,13 +72,13 @@
              </CardTitle>
            </CardHeader>
            <CardContent>
-             <ul className="space-y-1">
-               {careRecipient.allergies.map((allergy, idx) => (
-                 <li key={idx} className="text-destructive font-medium">
-                   ⚠️ {allergy}
-                 </li>
-               ))}
-             </ul>
+            <ul className="space-y-1">
+                {careRecipient.allergies.map((allergy, idx) => (
+                  <li key={idx} className="text-destructive font-medium">
+                    ⚠️ {allergy.name} {allergy.reaction ? `(${allergy.reaction})` : ''} — {allergy.severity}
+                  </li>
+                ))}
+              </ul>
            </CardContent>
          </Card>
  
@@ -157,24 +157,33 @@
                Insurance Information
              </CardTitle>
            </CardHeader>
-           <CardContent className="space-y-4">
-             <div>
-               <p className="text-sm text-muted-foreground">Medicare</p>
-               <p className="font-medium font-mono">{careRecipient.insurance.medicare}</p>
-             </div>
-             {careRecipient.insurance.supplemental && (
-               <>
-                 <Separator />
-                 <div>
-                   <p className="text-sm text-muted-foreground">
-                     Supplemental ({careRecipient.insurance.supplemental.provider})
-                   </p>
-                   <p className="font-medium font-mono">
-                     {careRecipient.insurance.supplemental.memberId}
-                   </p>
-                 </div>
-               </>
-             )}
+            <CardContent className="space-y-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Carrier</p>
+                <p className="font-medium">{careRecipient.insurance.carrier} — {careRecipient.insurance.policyNumber}</p>
+              </div>
+              {careRecipient.insurance.medicare && (
+                <>
+                  <Separator />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Medicare</p>
+                    <p className="font-medium font-mono">{careRecipient.insurance.medicare}</p>
+                  </div>
+                </>
+              )}
+              {careRecipient.insurance.supplemental && (
+                <>
+                  <Separator />
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      Supplemental ({careRecipient.insurance.supplemental.provider})
+                    </p>
+                    <p className="font-medium font-mono">
+                      {careRecipient.insurance.supplemental.memberId}
+                    </p>
+                  </div>
+                </>
+              )}
            </CardContent>
          </Card>
  
