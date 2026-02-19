@@ -1,8 +1,9 @@
 import { ReactNode, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { MessageCircle, LayoutDashboard, Heart, AlertCircle, Users, Settings, Menu, X, Pill, Calendar, Stethoscope, Activity, FileText } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { MessageCircle, LayoutDashboard, Heart, AlertCircle, Users, Settings, Menu, X, Pill, Calendar, Stethoscope, Activity, FileText, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -34,6 +35,15 @@ const sidebarItems = [
 export function AppLayout({ children, hideNav }: AppLayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+
+  const displayName = user?.user_metadata?.first_name || user?.email?.split("@")[0] || "User";
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/auth");
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -50,14 +60,26 @@ export function AppLayout({ children, hideNav }: AppLayoutProps) {
             </div>
           </Link>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden touch-target"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
+          <div className="flex items-center gap-2">
+            <span className="hidden md:inline text-xs text-muted-foreground">{displayName}</span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="hidden md:flex h-8 w-8 text-muted-foreground hover:text-foreground"
+              onClick={handleSignOut}
+              title="Sign out"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden touch-target"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -98,6 +120,15 @@ export function AppLayout({ children, hideNav }: AppLayoutProps) {
               );
             })}
           </nav>
+          <div className="mt-auto pt-4 border-t border-border">
+            <button
+              onClick={handleSignOut}
+              className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary w-full touch-target"
+            >
+              <LogOut className="h-4 w-4 flex-shrink-0" />
+              Sign out
+            </button>
+          </div>
         </aside>
 
         {/* Mobile Menu Overlay */}
@@ -149,6 +180,15 @@ export function AppLayout({ children, hideNav }: AppLayoutProps) {
               );
             })}
           </nav>
+          <div className="mt-auto pt-4 border-t border-border">
+            <button
+              onClick={handleSignOut}
+              className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary w-full touch-target"
+            >
+              <LogOut className="h-4 w-4 flex-shrink-0" />
+              Sign out
+            </button>
+          </div>
         </aside>
 
         {/* Main Content */}
