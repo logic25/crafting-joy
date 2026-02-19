@@ -2,6 +2,8 @@ import { ChatMessage } from "@/types";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
+import { Copy, Check } from "lucide-react";
+import { useState } from "react";
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -10,6 +12,13 @@ interface MessageBubbleProps {
 export function MessageBubble({ message }: MessageBubbleProps) {
   const isCircle = message.senderType === "circle";
   const isFamily = message.senderType === "family";
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(message.content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <div className={cn("flex gap-2.5 py-1.5", isFamily && "justify-end")}>
@@ -44,6 +53,17 @@ export function MessageBubble({ message }: MessageBubbleProps) {
             <p>{message.content}</p>
           )}
         </div>
+
+        {/* Copy button for Circle messages */}
+        {isCircle && (
+          <button
+            onClick={handleCopy}
+            className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors px-1"
+          >
+            {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+            {copied ? "Copied" : "Copy"}
+          </button>
+        )}
 
         {/* Timestamp */}
         <p className={cn(
