@@ -1,1 +1,4 @@
 project_id = "xlsqqkesefxobixhxzsp"
+
+[functions.circle-chat]
+verify_jwt = false
