@@ -12,6 +12,8 @@ import Family from "./pages/Family";
 import Emergency from "./pages/Emergency";
 import Settings from "./pages/Settings";
 import Doctors from "./pages/Doctors";
+import BloodPressure from "./pages/BloodPressure";
+import Documents from "./pages/Documents";
 
 const queryClient = new QueryClient();
 
@@ -25,11 +27,13 @@ const App = () => (
           <Route path="/" element={<Chat />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/appointments" element={<Appointments />} />
-           <Route path="/medications" element={<Medications />} />
-           <Route path="/family" element={<Family />} />
-           <Route path="/emergency" element={<Emergency />} />
-           <Route path="/settings" element={<Settings />} />
-           <Route path="/doctors" element={<Doctors />} />
+          <Route path="/medications" element={<Medications />} />
+          <Route path="/family" element={<Family />} />
+          <Route path="/emergency" element={<Emergency />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/doctors" element={<Doctors />} />
+          <Route path="/bp" element={<BloodPressure />} />
+          <Route path="/documents" element={<Documents />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
