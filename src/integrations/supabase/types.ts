@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          action: string
+          care_circle_id: string | null
+          created_at: string
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          resource_id: string | null
+          resource_type: string
+          user_email: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          care_circle_id?: string | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          resource_id?: string | null
+          resource_type: string
+          user_email?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          care_circle_id?: string | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          resource_id?: string | null
+          resource_type?: string
+          user_email?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       care_circle_members: {
         Row: {
           care_circle_id: string
