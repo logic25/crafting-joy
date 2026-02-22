@@ -43,27 +43,52 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
+    let mounted = true;
+
+    // Safety timeout - never stay loading forever
+    const timeout = setTimeout(() => {
+      if (mounted && loading) {
+        console.warn("Auth loading timed out, setting loading to false");
+        setLoading(false);
+      }
+    }, 5000);
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
+        if (!mounted) return;
         setSession(session);
         if (session?.user) {
-          await checkCircleStatus(session.user.id);
+          // Use setTimeout to avoid potential Supabase client deadlock
+          setTimeout(async () => {
+            if (mounted) {
+              await checkCircleStatus(session.user.id);
+              setLoading(false);
+            }
+          }, 0);
         } else {
           setHasCircle(null);
+          setLoading(false);
         }
-        setLoading(false);
       }
     );
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!mounted) return;
       setSession(session);
       if (session?.user) {
         await checkCircleStatus(session.user.id);
       }
       setLoading(false);
+    }).catch((err) => {
+      console.error("getSession error:", err);
+      if (mounted) setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {
