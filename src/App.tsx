@@ -17,6 +17,8 @@ import BloodPressure from "./pages/BloodPressure";
 import Documents from "./pages/Documents";
 import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
+import Admin from "./pages/Admin";
+import { useIsSuperAdmin } from "@/hooks/useAppRole";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +27,15 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   if (loading) return null;
   if (!user) return <Navigate to="/auth" replace />;
   if (hasCircle === false) return <Navigate to="/onboarding" replace />;
+  return <>{children}</>;
+};
+
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
+  const { isSuperAdmin, loading: adminLoading } = useIsSuperAdmin();
+  if (loading || adminLoading) return null;
+  if (!user) return <Navigate to="/auth" replace />;
+  if (!isSuperAdmin) return <Navigate to="/" replace />;
   return <>{children}</>;
 };
 
@@ -48,6 +59,7 @@ const App = () => (
             <Route path="/doctors" element={<ProtectedRoute><Doctors /></ProtectedRoute>} />
             <Route path="/bp" element={<ProtectedRoute><BloodPressure /></ProtectedRoute>} />
             <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
+            <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
