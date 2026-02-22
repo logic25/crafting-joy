@@ -20,6 +20,7 @@ import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 import Admin from "./pages/Admin";
 import Install from "./pages/Install";
+import Landing from "./pages/Landing";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import { useIsSuperAdmin } from "@/hooks/useAppRole";
@@ -30,7 +31,7 @@ const queryClient = new QueryClient();
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading, hasCircle } = useAuth();
   if (loading) return null;
-  if (!user) return <Navigate to="/auth" replace />;
+  if (!user) return <Navigate to="/landing" replace />;
   if (hasCircle === false) return <Navigate to="/onboarding" replace />;
   return <>{children}</>;
 };
@@ -39,7 +40,7 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   const { isSuperAdmin, loading: adminLoading } = useIsSuperAdmin();
   if (loading || adminLoading) return null;
-  if (!user) return <Navigate to="/auth" replace />;
+  if (!user) return <Navigate to="/landing" replace />;
   if (!isSuperAdmin) return <Navigate to="/" replace />;
   return <>{children}</>;
 };
@@ -58,6 +59,7 @@ const App = () => (
         <AuthProvider>
           <InactivityGuard>
             <Routes>
+              <Route path="/landing" element={<Landing />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/onboarding" element={<Onboarding />} />
               <Route path="/" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
