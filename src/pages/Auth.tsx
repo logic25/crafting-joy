@@ -14,6 +14,7 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [accessCode, setAccessCode] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { user, loading: authLoading, hasCircle } = useAuth();
@@ -31,6 +32,14 @@ const Auth = () => {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       } else {
+        // Validate access code first
+        const { data: codeResult, error: codeError } = await supabase.functions.invoke(
+          "validate-access-code",
+          { body: { code: accessCode } }
+        );
+        if (codeError) throw new Error("Unable to validate access code. Please try again.");
+        if (!codeResult.valid) throw new Error("Invalid access code. Ask your family member for the code.");
+
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -124,6 +133,21 @@ const Auth = () => {
               className="h-11"
             />
           </div>
+
+          {!isLogin && (
+            <div className="space-y-1.5">
+              <Label htmlFor="accessCode" className="text-xs">Access Code</Label>
+              <Input
+                id="accessCode"
+                value={accessCode}
+                onChange={(e) => setAccessCode(e.target.value)}
+                placeholder="Enter family access code"
+                required={!isLogin}
+                className="h-11"
+              />
+              <p className="text-[11px] text-muted-foreground">Ask your family member for the access code</p>
+            </div>
+          )}
 
           <Button
             type="submit"
