@@ -47,9 +47,10 @@ const Weight = () => {
   }));
 
   const latest = readings[0];
-  const trend = readings.length >= 2
-    ? Number(readings[0].value_primary) <= Number(readings[1].value_primary) ? "down" : "up"
-    : "down";
+  const prev = readings.length >= 2 ? readings[1] : null;
+  const weightDiff = prev ? Number(latest.value_primary) - Number(prev.value_primary) : 0;
+  const weightPct = prev ? (weightDiff / Number(prev.value_primary)) * 100 : 0;
+  const trend = weightDiff <= 0 ? "down" : "up";
 
   const handleLog = async () => {
     const weight = parseFloat(newWeight);
@@ -178,17 +179,26 @@ const Weight = () => {
               </p>
             </div>
             <div className="rounded-xl border border-border bg-card p-4 shadow-card">
-              <p className="text-xs text-muted-foreground mb-1">Trend</p>
-              <div className="flex items-center gap-2 mt-3">
-                {trend === "down" ? (
-                  <TrendingDown className="h-6 w-6 text-success" />
-                ) : (
-                  <TrendingUp className="h-6 w-6 text-warning" />
-                )}
-                <span className={cn("text-sm font-medium", trend === "down" ? "text-success" : "text-warning")}>
-                  {trend === "down" ? "Trending down" : "Trending up"}
-                </span>
-              </div>
+              <p className="text-xs text-muted-foreground mb-1">Change</p>
+              {prev ? (
+                <>
+                  <div className="flex items-center gap-2 mt-1">
+                    {trend === "down" ? (
+                      <TrendingDown className="h-5 w-5 text-success" />
+                    ) : (
+                      <TrendingUp className="h-5 w-5 text-warning" />
+                    )}
+                    <span className={cn("text-xl font-bold", trend === "down" ? "text-success" : "text-warning")}>
+                      {weightDiff > 0 ? "+" : ""}{weightDiff.toFixed(1)} lbs
+                    </span>
+                  </div>
+                  <p className={cn("text-sm font-medium mt-0.5", trend === "down" ? "text-success" : "text-warning")}>
+                    ({weightPct > 0 ? "+" : ""}{weightPct.toFixed(1)}%)
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground mt-3">Need 2+ readings</p>
+              )}
             </div>
           </div>
         )}
