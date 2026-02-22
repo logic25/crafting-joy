@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, Heart, Activity, Shield, Search, Brain, Zap, AlertTriangle as AlertTriangleIcon } from "lucide-react";
+import { Users, Heart, Activity, Shield, Search, Brain, Zap, AlertTriangle as AlertTriangleIcon, TrendingUp, DollarSign } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -48,6 +48,12 @@ interface HealthAlert {
   title: string;
   message: string;
   created_at: string;
+  model_used: string | null;
+  complexity: string | null;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  response_time_ms: number | null;
+  estimated_cost: number | null;
 }
 
 interface HealthReading {
@@ -62,6 +68,23 @@ const severityColors: Record<string, string> = {
   watch: "bg-warning/10 text-warning border-warning/25",
   attention: "bg-warning/15 text-warning border-warning/40",
   urgent: "bg-destructive/10 text-destructive border-destructive/25",
+};
+
+const tierColors: Record<string, string> = {
+  lite: "bg-emerald-500/10 text-emerald-600 border-emerald-500/25",
+  standard: "bg-blue-500/10 text-blue-600 border-blue-500/25",
+  pro: "bg-purple-500/10 text-purple-600 border-purple-500/25",
+  skipped: "bg-muted text-muted-foreground border-border",
+};
+
+const modelShortName = (model: string | null): string => {
+  if (!model) return "unknown";
+  if (model === "skipped") return "Skipped";
+  if (model.includes("flash-lite")) return "Flash Lite";
+  if (model.includes("gemini-3-flash")) return "Flash 3";
+  if (model.includes("gemini-2.5-flash")) return "Flash 2.5";
+  if (model.includes("2.5-pro")) return "Pro 2.5";
+  return model.split("/").pop() || model;
 };
 
 export default function Admin() {
@@ -81,7 +104,7 @@ export default function Admin() {
         supabase.from("care_circles").select("*"),
         supabase.from("care_circle_members").select("*"),
         supabase.from("care_recipients").select("id, name, care_circle_id, created_at"),
-        supabase.from("health_alerts").select("*").order("created_at", { ascending: false }).limit(50),
+        supabase.from("health_alerts").select("*").order("created_at", { ascending: false }).limit(200),
         supabase.from("health_readings").select("id, care_circle_id, type, created_at").order("created_at", { ascending: false }).limit(200),
       ]);
       setProfiles(profilesRes.data || []);
@@ -117,41 +140,72 @@ export default function Admin() {
   const getRecipientsForCircle = (circleId: string) =>
     recipients.filter((r) => r.care_circle_id === circleId);
 
-  // AI usage stats
+  // ── AI usage stats (real data) ──────────────────────────────────
   const totalAnalyses = healthAlerts.length;
   const totalReadings = healthReadings.length;
+
+  // Real cost from DB
+  const realTotalCost = healthAlerts.reduce((sum, a) => sum + (a.estimated_cost || 0), 0);
+  const hasRealCostData = healthAlerts.some((a) => a.estimated_cost != null && a.estimated_cost > 0);
+
+  // Model breakdown
+  const modelBreakdown = healthAlerts.reduce((acc, a) => {
+    const tier = a.complexity || "standard";
+    if (!acc[tier]) acc[tier] = { count: 0, cost: 0, totalTokens: 0, avgResponseMs: 0, responseMsSum: 0 };
+    acc[tier].count += 1;
+    acc[tier].cost += a.estimated_cost || 0;
+    acc[tier].totalTokens += (a.input_tokens || 0) + (a.output_tokens || 0);
+    acc[tier].responseMsSum += a.response_time_ms || 0;
+    return acc;
+  }, {} as Record<string, { count: number; cost: number; totalTokens: number; avgResponseMs: number; responseMsSum: number }>);
+
+  // Calculate averages
+  for (const tier of Object.keys(modelBreakdown)) {
+    const b = modelBreakdown[tier];
+    b.avgResponseMs = b.count > 0 ? Math.round(b.responseMsSum / b.count) : 0;
+  }
+
+  // Cost projection
+  const alertDates = healthAlerts.map((a) => a.created_at.split("T")[0]);
+  const uniqueDays = new Set(alertDates).size;
+  const dailyAvgCost = uniqueDays > 0 ? realTotalCost / uniqueDays : 0;
+  const monthlyProjection = dailyAvgCost * 30;
+
+  // Per-circle cost
+  const costByCircle = healthAlerts.reduce((acc, a) => {
+    const cid = a.care_circle_id;
+    acc[cid] = (acc[cid] || 0) + (a.estimated_cost || 0);
+    return acc;
+  }, {} as Record<string, number>);
+
   const severityCounts = healthAlerts.reduce((acc, a) => {
     acc[a.severity] = (acc[a.severity] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
+
   const readingsByType = healthReadings.reduce((acc, r) => {
     acc[r.type] = (acc[r.type] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
-  // AI usage by feature — join alerts to their triggering reading type
+  // AI usage by feature
   const readingTypeMap = new Map(healthReadings.map((r) => [r.id, r.type]));
   const aiUsageByFeature = healthAlerts.reduce((acc, alert) => {
     const readingType = alert.reading_id ? readingTypeMap.get(alert.reading_id) || "unknown" : "unknown";
     const featureLabel =
-      readingType === "bp" ? "Blood Pressure Analysis" :
-      readingType === "weight" ? "Weight Analysis" :
-      readingType === "heart_rate" ? "Heart Rate Analysis" :
-      readingType === "steps" ? "Activity Analysis" :
-      readingType === "sleep" ? "Sleep Analysis" :
-      readingType === "glucose" ? "Glucose Analysis" :
+      readingType === "bp" ? "Blood Pressure" :
+      readingType === "weight" ? "Weight" :
+      readingType === "heart_rate" ? "Heart Rate" :
+      readingType === "steps" ? "Activity" :
+      readingType === "sleep" ? "Sleep" :
+      readingType === "glucose" ? "Glucose" :
       readingType === "unknown" ? "Other" :
-      `${readingType} Analysis`;
+      readingType;
     acc[featureLabel] = (acc[featureLabel] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
-  // Sort features by usage descending
   const sortedFeatures = Object.entries(aiUsageByFeature).sort((a, b) => b[1] - a[1]);
-
-  // Estimated cost per analysis (gemini-3-flash-preview is ~$0.001-0.003 per call)
-  const estimatedCostPerCall = 0.002;
-  const estimatedTotalCost = totalAnalyses * estimatedCostPerCall;
 
   // Alerts by day (last 7 days)
   const today = new Date();
@@ -226,11 +280,11 @@ export default function Admin() {
           <Card>
             <CardContent className="p-4 flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Zap className="h-5 w-5 text-primary" />
+                <DollarSign className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{totalReadings}</p>
-                <p className="text-xs text-muted-foreground">Health Readings</p>
+                <p className="text-2xl font-bold">${realTotalCost.toFixed(4)}</p>
+                <p className="text-xs text-muted-foreground">{hasRealCostData ? "Actual Cost" : "Est. Cost"}</p>
               </div>
             </CardContent>
           </Card>
@@ -239,37 +293,33 @@ export default function Admin() {
         <Tabs defaultValue="ai-usage" className="space-y-4">
           <TabsList>
             <TabsTrigger value="ai-usage">AI Usage</TabsTrigger>
+            <TabsTrigger value="models">Model Routing</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="circles">Care Circles</TabsTrigger>
           </TabsList>
 
           {/* AI Usage Tab */}
           <TabsContent value="ai-usage" className="space-y-4">
-            {/* Model info */}
+            {/* Cost overview */}
             <Card>
               <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">Current Model</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">google/gemini-3-flash-preview</p>
-                  </div>
-                  <Badge variant="secondary" className="text-xs">
-                    Balanced (speed + quality)
-                  </Badge>
-                </div>
-                <Separator className="my-3" />
                 <div className="grid grid-cols-3 gap-4 text-sm">
                   <div>
-                    <p className="text-xs text-muted-foreground">Analyses per reading</p>
-                    <p className="font-semibold text-foreground">1 API call</p>
+                    <p className="text-xs text-muted-foreground">Total Cost</p>
+                    <p className="font-semibold text-foreground text-lg">${realTotalCost.toFixed(4)}</p>
+                    <p className="text-[10px] text-muted-foreground">{hasRealCostData ? "from real token data" : "estimated"}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">Avg response time</p>
-                    <p className="font-semibold text-foreground">~1-2 seconds</p>
+                    <p className="text-xs text-muted-foreground">Monthly Projection</p>
+                    <p className="font-semibold text-foreground text-lg">${monthlyProjection.toFixed(2)}</p>
+                    <p className="text-[10px] text-muted-foreground">based on {uniqueDays} day{uniqueDays !== 1 ? "s" : ""} of data</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">Est. total cost</p>
-                    <p className="font-semibold text-foreground">${estimatedTotalCost.toFixed(3)}</p>
+                    <p className="text-xs text-muted-foreground">Avg Cost / Circle</p>
+                    <p className="font-semibold text-foreground text-lg">
+                      ${circles.length > 0 ? (realTotalCost / circles.length).toFixed(4) : "0.00"}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">{circles.length} circle{circles.length !== 1 ? "s" : ""}</p>
                   </div>
                 </div>
               </CardContent>
@@ -286,15 +336,11 @@ export default function Admin() {
                 ) : (
                   sortedFeatures.map(([feature, count]) => {
                     const pct = totalAnalyses > 0 ? (count / totalAnalyses) * 100 : 0;
-                    const featureCost = count * estimatedCostPerCall;
                     return (
                       <div key={feature} className="space-y-1">
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-foreground font-medium">{feature}</span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground">${featureCost.toFixed(3)}</span>
-                            <Badge variant="outline" className="text-xs">{count} calls</Badge>
-                          </div>
+                          <Badge variant="outline" className="text-xs">{count} calls</Badge>
                         </div>
                         <div className="h-2 bg-muted rounded-full overflow-hidden">
                           <div
@@ -305,18 +351,6 @@ export default function Admin() {
                       </div>
                     );
                   })
-                )}
-                {sortedFeatures.length > 0 && (
-                  <Separator className="my-2" />
-                )}
-                {sortedFeatures.length > 0 && (
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-semibold text-foreground">Total</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-foreground">${estimatedTotalCost.toFixed(3)}</span>
-                      <Badge variant="secondary" className="text-xs">{totalAnalyses} calls</Badge>
-                    </div>
-                  </div>
                 )}
               </CardContent>
             </Card>
@@ -333,7 +367,7 @@ export default function Admin() {
                   Object.entries(severityCounts).map(([severity, count]) => (
                     <div key={severity} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className={cn("w-2 h-2 rounded-full", 
+                        <span className={cn("w-2 h-2 rounded-full",
                           severity === "normal" ? "bg-success" :
                           severity === "watch" ? "bg-warning" :
                           severity === "attention" ? "bg-warning" :
@@ -342,25 +376,6 @@ export default function Admin() {
                         <span className="text-sm capitalize text-foreground">{severity}</span>
                       </div>
                       <span className="text-sm font-semibold text-foreground">{count}</span>
-                    </div>
-                  ))
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Readings by type */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Readings by Type</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {Object.entries(readingsByType).length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-4">No readings yet</p>
-                ) : (
-                  Object.entries(readingsByType).map(([type, count]) => (
-                    <div key={type} className="flex items-center justify-between">
-                      <span className="text-sm text-foreground capitalize">{type.replace("_", " ")}</span>
-                      <Badge variant="outline" className="text-xs">{count}</Badge>
                     </div>
                   ))
                 )}
@@ -393,27 +408,138 @@ export default function Admin() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
 
-            {/* Recent alerts */}
+          {/* Model Routing Tab */}
+          <TabsContent value="models" className="space-y-4">
+            {/* Model Breakdown Card */}
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Recent AI Alerts</CardTitle>
+                <CardTitle className="text-sm">Model Tier Breakdown</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {Object.keys(modelBreakdown).length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">No routing data yet — log a health reading to see model routing in action</p>
+                ) : (
+                  <>
+                    {/* Visual bar */}
+                    <div className="flex h-4 rounded-full overflow-hidden">
+                      {["lite", "standard", "pro", "skipped"].map((tier) => {
+                        const b = modelBreakdown[tier];
+                        if (!b) return null;
+                        const pct = totalAnalyses > 0 ? (b.count / totalAnalyses) * 100 : 0;
+                        return (
+                          <div
+                            key={tier}
+                            className={cn(
+                              "transition-all",
+                              tier === "lite" ? "bg-emerald-500" :
+                              tier === "standard" ? "bg-blue-500" :
+                              tier === "pro" ? "bg-purple-500" :
+                              "bg-muted-foreground/30"
+                            )}
+                            style={{ width: `${pct}%` }}
+                            title={`${tier}: ${b.count} calls (${pct.toFixed(0)}%)`}
+                          />
+                        );
+                      })}
+                    </div>
+
+                    {/* Tier details */}
+                    {["lite", "standard", "pro", "skipped"].map((tier) => {
+                      const b = modelBreakdown[tier];
+                      if (!b) return null;
+                      const pct = totalAnalyses > 0 ? (b.count / totalAnalyses) * 100 : 0;
+                      return (
+                        <div key={tier} className={cn("rounded-lg border p-3", tierColors[tier])}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-semibold capitalize">{tier}</span>
+                              <span className="text-xs opacity-70">{pct.toFixed(0)}%</span>
+                            </div>
+                            <Badge variant="outline" className="text-xs">{b.count} calls</Badge>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2 mt-2 text-xs">
+                            <div>
+                              <span className="opacity-70">Cost: </span>
+                              <span className="font-medium">${b.cost.toFixed(4)}</span>
+                            </div>
+                            <div>
+                              <span className="opacity-70">Tokens: </span>
+                              <span className="font-medium">{b.totalTokens.toLocaleString()}</span>
+                            </div>
+                            <div>
+                              <span className="opacity-70">Avg time: </span>
+                              <span className="font-medium">{b.avgResponseMs > 0 ? `${(b.avgResponseMs / 1000).toFixed(1)}s` : "—"}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Per-Circle Cost */}
+            {Object.keys(costByCircle).length > 0 && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">Cost by Care Circle</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {Object.entries(costByCircle)
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([circleId, cost]) => {
+                      const circle = circles.find((c) => c.id === circleId);
+                      return (
+                        <div key={circleId} className="flex items-center justify-between text-sm">
+                          <span className="text-foreground">{circle?.name || circleId.slice(0, 8)}</span>
+                          <span className="font-semibold text-foreground">${cost.toFixed(4)}</span>
+                        </div>
+                      );
+                    })}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Recent Routing Decisions */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Recent Routing Decisions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {healthAlerts.slice(0, 10).map((alert) => (
+                {healthAlerts.slice(0, 15).map((alert) => (
                   <div key={alert.id} className={cn("rounded-lg border p-3", severityColors[alert.severity] || "bg-muted/10 border-border")}>
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <p className="text-sm font-semibold">{alert.title}</p>
-                        <p className="text-xs opacity-80 mt-0.5 line-clamp-2">{alert.message}</p>
+                        <p className="text-xs opacity-80 mt-0.5 line-clamp-1">{alert.message}</p>
                       </div>
-                      <Badge variant="outline" className="text-[10px] flex-shrink-0 capitalize">
-                        {alert.severity}
-                      </Badge>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        {alert.complexity && (
+                          <Badge variant="outline" className={cn("text-[10px]", tierColors[alert.complexity])}>
+                            {alert.complexity}
+                          </Badge>
+                        )}
+                        <Badge variant="outline" className="text-[10px] capitalize">
+                          {alert.severity}
+                        </Badge>
+                      </div>
                     </div>
-                    <p className="text-[10px] opacity-60 mt-1">
-                      {new Date(alert.created_at).toLocaleString()}
-                    </p>
+                    <div className="flex items-center gap-3 mt-1.5 text-[10px] opacity-60">
+                      <span>{modelShortName(alert.model_used)}</span>
+                      {alert.input_tokens != null && (
+                        <span>{(alert.input_tokens + (alert.output_tokens || 0)).toLocaleString()} tokens</span>
+                      )}
+                      {alert.response_time_ms != null && alert.response_time_ms > 0 && (
+                        <span>{(alert.response_time_ms / 1000).toFixed(1)}s</span>
+                      )}
+                      {alert.estimated_cost != null && (
+                        <span>${alert.estimated_cost.toFixed(5)}</span>
+                      )}
+                      <span>{new Date(alert.created_at).toLocaleString()}</span>
+                    </div>
                   </div>
                 ))}
                 {healthAlerts.length === 0 && (
