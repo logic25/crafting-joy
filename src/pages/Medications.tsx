@@ -2,12 +2,13 @@ import { useState } from "react";
 import { Plus, Pill, ChevronDown, ChevronUp, Printer, AlertCircle, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { medications, careRecipient } from "@/data/mockData";
+import { medications as initialMedications, careRecipient } from "@/data/mockData";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-
+import { AddMedicationSheet } from "@/components/medications/AddMedicationSheet";
 const Medications = () => {
+  const [medications] = useState(initialMedications);
   const [showDiscontinued, setShowDiscontinued] = useState(false);
 
   const activeMedications = medications.filter((med) => med.status === "active");
@@ -36,10 +37,7 @@ const Medications = () => {
             <Button variant="outline" size="icon" className="h-9 w-9">
               <Printer className="h-4 w-4" />
             </Button>
-            <Button className="gradient-primary gap-2 h-9">
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">Add</span>
-            </Button>
+            <AddMedicationSheet />
           </div>
         </div>
 
