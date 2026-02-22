@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, Heart, Activity, Shield, Search, Brain, Zap, AlertTriangle as AlertTriangleIcon, TrendingUp, DollarSign } from "lucide-react";
+import { Users, Heart, Activity, Shield, Search, Brain, Zap, AlertTriangle as AlertTriangleIcon, TrendingUp, DollarSign, Key, Eye, EyeOff, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 interface Profile {
   id: string;
@@ -96,16 +98,22 @@ export default function Admin() {
   const [healthReadings, setHealthReadings] = useState<HealthReading[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [accessCode, setAccessCode] = useState("");
+  const [newAccessCode, setNewAccessCode] = useState("");
+  const [showCode, setShowCode] = useState(false);
+  const [savingCode, setSavingCode] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchAll = async () => {
-      const [profilesRes, circlesRes, membersRes, recipientsRes, alertsRes, readingsRes] = await Promise.all([
+      const [profilesRes, circlesRes, membersRes, recipientsRes, alertsRes, readingsRes, settingsRes] = await Promise.all([
         supabase.from("profiles").select("*"),
         supabase.from("care_circles").select("*"),
         supabase.from("care_circle_members").select("*"),
         supabase.from("care_recipients").select("id, name, care_circle_id, created_at"),
         supabase.from("health_alerts").select("*").order("created_at", { ascending: false }).limit(200),
         supabase.from("health_readings").select("id, care_circle_id, type, created_at").order("created_at", { ascending: false }).limit(200),
+        supabase.from("app_settings" as any).select("value").eq("key", "access_code").single(),
       ]);
       setProfiles(profilesRes.data || []);
       setCircles(circlesRes.data || []);
@@ -113,10 +121,28 @@ export default function Admin() {
       setRecipients(recipientsRes.data || []);
       setHealthAlerts(alertsRes.data || []);
       setHealthReadings(readingsRes.data || []);
+      if (settingsRes.data) setAccessCode((settingsRes.data as any).value || "");
       setLoading(false);
     };
     fetchAll();
   }, []);
+
+  const handleUpdateAccessCode = async () => {
+    if (!newAccessCode.trim()) return;
+    setSavingCode(true);
+    const { error } = await supabase
+      .from("app_settings" as any)
+      .update({ value: newAccessCode.trim() } as any)
+      .eq("key", "access_code");
+    if (error) {
+      toast({ title: "Error", description: "Failed to update access code", variant: "destructive" });
+    } else {
+      setAccessCode(newAccessCode.trim());
+      setNewAccessCode("");
+      toast({ title: "Updated", description: "Access code has been changed" });
+    }
+    setSavingCode(false);
+  };
 
   const filteredProfiles = profiles.filter(
     (p) =>
@@ -296,6 +322,7 @@ export default function Admin() {
             <TabsTrigger value="models">Model Routing</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="circles">Care Circles</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
           {/* AI Usage Tab */}
@@ -653,6 +680,62 @@ export default function Admin() {
             {circles.length === 0 && (
               <p className="text-center text-muted-foreground py-8">No circles yet</p>
             )}
+          </TabsContent>
+
+          {/* Settings Tab */}
+          <TabsContent value="settings" className="space-y-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Key className="h-4 w-4" />
+                  Sign-Up Access Code
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Anyone signing up must enter this code. Share it with family members you want to invite.
+                </p>
+
+                {/* Current code */}
+                <div className="space-y-1.5">
+                  <p className="text-xs text-muted-foreground">Current code</p>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 px-3 py-2 bg-muted rounded-md text-sm font-mono">
+                      {showCode ? accessCode : "••••••••••"}
+                    </code>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowCode(!showCode)}
+                      className="h-9 w-9"
+                    >
+                      {showCode ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Update code */}
+                <Separator />
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">Change access code</p>
+                  <div className="flex gap-2">
+                    <Input
+                      value={newAccessCode}
+                      onChange={(e) => setNewAccessCode(e.target.value)}
+                      placeholder="Enter new access code"
+                      className="flex-1"
+                    />
+                    <Button
+                      onClick={handleUpdateAccessCode}
+                      disabled={savingCode || !newAccessCode.trim()}
+                      size="sm"
+                    >
+                      {savingCode ? <Loader2 className="h-4 w-4 animate-spin" /> : "Update"}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
