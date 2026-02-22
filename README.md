@@ -1,73 +1,66 @@
-# Welcome to your Lovable project
+# CareCircle
 
-## Project info
+A family-centered caregiving coordination platform that answers the question: **"How's Mom?"**
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## What It Does
 
-## How can I edit this code?
+CareCircle is a mobile-first, chat-first app that helps families coordinate care for aging loved ones. At its core is **Circle AI** — a warm, knowledgeable assistant that knows Mom's medications, doctors, blood pressure trends, and appointments so the whole family stays informed.
 
-There are several ways of editing your application.
+### Key Features
 
-**Use Lovable**
+- **AI Care Assistant (Circle)** — Ask questions like "When is Mom's next appointment?" or "What medications is she on?" and get instant, context-aware answers
+- **Family Group Chat** — Coordinate care tasks and share updates with siblings and caregivers in one place
+- **Medication Tracking** — Monitor prescriptions, refill dates, and medication schedules
+- **Blood Pressure Logging** — Track vitals over time with trend analysis
+- **Appointment Management** — Schedule, assign coverage, and log visit summaries
+- **Doctor & Provider Directory** — Keep all provider contacts, office hours, and portal links organized
+- **Document Storage** — Upload and organize lab results, discharge papers, insurance cards, and more
+- **Emergency Info** — One-tap access to allergies, emergency contacts, and preferred hospital
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## Tech Stack
 
-Changes made via Lovable will be committed automatically to this repo.
+- **Frontend:** React, TypeScript, Vite, Tailwind CSS, shadcn/ui
+- **Backend:** Lovable Cloud (Supabase) — auth, database, edge functions
+- **AI:** Google Gemini via Lovable AI gateway
+- **Styling:** Mobile-first responsive design with dark/light mode support
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+## Getting Started
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
+# Clone the repository
 git clone <YOUR_GIT_URL>
 
-# Step 2: Navigate to the project directory.
+# Navigate to the project
 cd <YOUR_PROJECT_NAME>
 
-# Step 3: Install the necessary dependencies.
+# Install dependencies
 npm i
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start the dev server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## Project Structure
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```
+src/
+├── components/       # Reusable UI components
+│   ├── cards/        # Dashboard cards (activity, appointments, meds)
+│   ├── chat/         # Chat input and message bubbles
+│   ├── layout/       # App shell and navigation
+│   └── ui/           # shadcn/ui primitives
+├── contexts/         # Auth context provider
+├── data/             # Mock data for development
+├── hooks/            # Custom React hooks
+├── pages/            # Route pages (Dashboard, Chat, Medications, etc.)
+├── types/            # TypeScript interfaces
+└── integrations/     # Backend client configuration
 
-**Use GitHub Codespaces**
+supabase/
+├── functions/        # Edge functions (Circle AI chat)
+└── migrations/       # Database schema migrations
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## License
 
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Private — All rights reserved.
