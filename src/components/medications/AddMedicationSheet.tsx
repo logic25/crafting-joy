@@ -139,9 +139,9 @@ export function AddMedicationSheet({ onAdd }: AddMedicationSheetProps) {
           <span className="hidden sm:inline">Add</span>
         </Button>
       </SheetTrigger>
-      <SheetContent side="bottom" className="h-[92vh] rounded-t-2xl overflow-y-auto">
-        <SheetHeader className="mb-4">
-          <SheetTitle className="text-lg">Add Medication</SheetTitle>
+      <SheetContent side="bottom" className="h-auto max-h-[75vh] rounded-t-2xl overflow-y-auto">
+        <SheetHeader className="mb-3">
+          <SheetTitle className="text-base">Add Medication</SheetTitle>
         </SheetHeader>
 
         {/* Camera OCR Section */}
@@ -158,23 +158,17 @@ export function AddMedicationSheet({ onAdd }: AddMedicationSheetProps) {
           {!previewUrl ? (
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="w-full rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 py-6 flex flex-col items-center gap-2 transition-colors hover:border-primary/50 hover:bg-primary/10"
+              className="w-full rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 py-4 flex items-center justify-center gap-3 transition-colors hover:border-primary/50 hover:bg-primary/10"
             >
-              <Camera className="h-8 w-8 text-primary" />
-              <span className="text-sm font-medium text-foreground">
-                Take a photo of the pill bottle
-              </span>
-              <span className="text-xs text-muted-foreground">
-                AI will read the label and fill in details
-              </span>
+              <Camera className="h-5 w-5 text-primary" />
+              <div className="text-left">
+                <span className="text-sm font-medium text-foreground">Snap a photo of the label</span>
+                <span className="text-xs text-muted-foreground block">AI fills in details automatically</span>
+              </div>
             </button>
           ) : (
             <div className="relative rounded-xl overflow-hidden border border-border">
-              <img
-                src={previewUrl}
-                alt="Medication label"
-                className="w-full h-40 object-cover"
-              />
+              <img src={previewUrl} alt="Medication label" className="w-full h-28 object-cover" />
               {scanning && (
                 <div className="absolute inset-0 bg-background/80 flex items-center justify-center gap-2">
                   <Loader2 className="h-5 w-5 animate-spin text-primary" />
@@ -202,18 +196,18 @@ export function AddMedicationSheet({ onAdd }: AddMedicationSheetProps) {
           )}
         </div>
 
-        <div className="flex items-center gap-3 mb-5">
+        <div className="flex items-center gap-3 mb-4">
           <div className="h-px flex-1 bg-border" />
-          <span className="text-xs text-muted-foreground uppercase tracking-wider">
+          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
             {previewUrl ? "Review & edit" : "Or enter manually"}
           </span>
           <div className="h-px flex-1 bg-border" />
         </div>
 
         {/* Form Fields */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div>
-            <Label htmlFor="med-name" className="text-sm">Medication Name *</Label>
+            <Label htmlFor="med-name" className="text-xs">Medication Name *</Label>
             <Input
               id="med-name"
               placeholder="e.g., Lisinopril"
@@ -225,7 +219,7 @@ export function AddMedicationSheet({ onAdd }: AddMedicationSheetProps) {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label htmlFor="med-dosage" className="text-sm">Dosage</Label>
+              <Label htmlFor="med-dosage" className="text-xs">Dosage</Label>
               <Input
                 id="med-dosage"
                 placeholder="e.g., 10mg"
@@ -235,7 +229,7 @@ export function AddMedicationSheet({ onAdd }: AddMedicationSheetProps) {
               />
             </div>
             <div>
-              <Label htmlFor="med-frequency" className="text-sm">Frequency</Label>
+              <Label htmlFor="med-frequency" className="text-xs">Frequency</Label>
               <Input
                 id="med-frequency"
                 placeholder="e.g., 1x daily"
@@ -247,7 +241,7 @@ export function AddMedicationSheet({ onAdd }: AddMedicationSheetProps) {
           </div>
 
           <div>
-            <Label htmlFor="med-purpose" className="text-sm">Purpose</Label>
+            <Label htmlFor="med-purpose" className="text-xs">Purpose</Label>
             <Select value={form.purpose} onValueChange={(v) => updateField("purpose", v)}>
               <SelectTrigger className={cn(scanSuccess && form.purpose && "border-success/50 bg-success/5")}>
                 <SelectValue placeholder="What is this for?" />
@@ -261,20 +255,19 @@ export function AddMedicationSheet({ onAdd }: AddMedicationSheetProps) {
           </div>
 
           <div>
-            <Label htmlFor="med-instructions" className="text-sm">Instructions</Label>
-            <Textarea
+            <Label htmlFor="med-instructions" className="text-xs">Instructions</Label>
+            <Input
               id="med-instructions"
               placeholder="e.g., Take with food"
               value={form.instructions}
               onChange={(e) => updateField("instructions", e.target.value)}
-              rows={2}
               className={cn(scanSuccess && form.instructions && "border-success/50 bg-success/5")}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label htmlFor="med-prescriber" className="text-sm">Prescriber</Label>
+              <Label htmlFor="med-prescriber" className="text-xs">Prescriber</Label>
               <Input
                 id="med-prescriber"
                 placeholder="e.g., Dr. Patel"
@@ -284,7 +277,7 @@ export function AddMedicationSheet({ onAdd }: AddMedicationSheetProps) {
               />
             </div>
             <div>
-              <Label htmlFor="med-pharmacy" className="text-sm">Pharmacy</Label>
+              <Label htmlFor="med-pharmacy" className="text-xs">Pharmacy</Label>
               <Input
                 id="med-pharmacy"
                 placeholder="e.g., CVS"
@@ -297,8 +290,8 @@ export function AddMedicationSheet({ onAdd }: AddMedicationSheetProps) {
         </div>
 
         {/* Submit */}
-        <div className="mt-6 pb-6">
-          <Button onClick={handleSubmit} className="w-full gradient-primary" size="lg">
+        <div className="mt-4 pb-4">
+          <Button onClick={handleSubmit} className="w-full gradient-primary">
             Add Medication
           </Button>
         </div>
