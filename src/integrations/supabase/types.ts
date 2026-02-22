@@ -146,11 +146,17 @@ export type Database = {
           acknowledged_by: string[] | null
           action_needed: string | null
           care_circle_id: string
+          complexity: string
           correlations: Json | null
           created_at: string
+          estimated_cost: number | null
           id: string
+          input_tokens: number | null
           message: string
+          model_used: string
+          output_tokens: number | null
           reading_id: string | null
+          response_time_ms: number | null
           severity: string
           title: string
         }
@@ -158,11 +164,17 @@ export type Database = {
           acknowledged_by?: string[] | null
           action_needed?: string | null
           care_circle_id: string
+          complexity?: string
           correlations?: Json | null
           created_at?: string
+          estimated_cost?: number | null
           id?: string
+          input_tokens?: number | null
           message: string
+          model_used?: string
+          output_tokens?: number | null
           reading_id?: string | null
+          response_time_ms?: number | null
           severity: string
           title: string
         }
@@ -170,11 +182,17 @@ export type Database = {
           acknowledged_by?: string[] | null
           action_needed?: string | null
           care_circle_id?: string
+          complexity?: string
           correlations?: Json | null
           created_at?: string
+          estimated_cost?: number | null
           id?: string
+          input_tokens?: number | null
           message?: string
+          model_used?: string
+          output_tokens?: number | null
           reading_id?: string | null
+          response_time_ms?: number | null
           severity?: string
           title?: string
         }

@@ -12,6 +12,12 @@ export interface HealthAlert {
   action_needed: string | null;
   acknowledged_by: string[] | null;
   created_at: string;
+  model_used: string | null;
+  complexity: string | null;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  response_time_ms: number | null;
+  estimated_cost: number | null;
 }
 
 export function useHealthAlerts(careCircleId: string | undefined, limit = 10) {

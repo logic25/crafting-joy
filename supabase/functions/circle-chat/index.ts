@@ -6,6 +6,43 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const MODELS = {
+  lite: "google/gemini-2.5-flash-lite",
+  standard: "google/gemini-2.5-flash",
+  pro: "google/gemini-2.5-pro",
+};
+
+// ── Keyword classifier ───────────────────────────────────────────────
+function classifyMessage(message: string): { model: string; tier: string } {
+  const lower = message.toLowerCase();
+
+  // Pro: reasoning, cross-correlation, "why", medication interactions
+  const proPatterns = [
+    /\bwhy\b/, /\bcould\s+\w+\s+cause\b/, /\bcorrelat/, /\binteraction\b/,
+    /\bside\s*effect/, /\bmedication.*(?:caus|affect|impact)/,
+    /\b(?:blood\s*pressure|bp).*(?:weight|sleep|heart)/,
+    /\b(?:weight).*(?:bp|blood\s*pressure|medication)/,
+    /\banalyze\b/, /\bexplain\b.*\b(?:trend|change|pattern)/,
+  ];
+  if (proPatterns.some((p) => p.test(lower))) {
+    return { model: MODELS.pro, tier: "pro" };
+  }
+
+  // Lite: factual lookups
+  const litePatterns = [
+    /\bpharmacy\b/, /\bdoctor\b.*\b(?:name|number|phone|contact)\b/,
+    /\ballerg/, /\bmedication\s*list\b/, /\bwhat\s+(?:meds|medications)\b/,
+    /\bappointment\b/, /\binsurance\b/, /\bhospital\b/,
+    /\bwhat\s+is\s+(?:mom|dad|her|his)\s+(?:doctor|pharmacy|hospital)\b/,
+  ];
+  if (litePatterns.some((p) => p.test(lower))) {
+    return { model: MODELS.lite, tier: "lite" };
+  }
+
+  // Standard: everything else (trends, general questions)
+  return { model: MODELS.standard, tier: "standard" };
+}
+
 const SYSTEM_PROMPT = [
   "You are Circle, a warm and knowledgeable AI assistant embedded in a family caregiving group chat for Rosa Martinez (Mom).",
   "",
@@ -47,6 +84,14 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
+    // Classify the last user message to pick the right model
+    const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
+    const { model, tier } = lastUserMsg
+      ? classifyMessage(lastUserMsg.content)
+      : { model: MODELS.standard, tier: "standard" };
+
+    console.log(`[chat-${tier}] Model: ${model} | Message: "${(lastUserMsg?.content || "").slice(0, 80)}"`);
+
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
       {
@@ -56,7 +101,7 @@ serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
+          model,
           messages: [
             { role: "system", content: SYSTEM_PROMPT },
             ...messages,
