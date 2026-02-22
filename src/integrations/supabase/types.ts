@@ -141,6 +141,119 @@ export type Database = {
           },
         ]
       }
+      health_alerts: {
+        Row: {
+          acknowledged_by: string[] | null
+          action_needed: string | null
+          care_circle_id: string
+          correlations: Json | null
+          created_at: string
+          id: string
+          message: string
+          reading_id: string | null
+          severity: string
+          title: string
+        }
+        Insert: {
+          acknowledged_by?: string[] | null
+          action_needed?: string | null
+          care_circle_id: string
+          correlations?: Json | null
+          created_at?: string
+          id?: string
+          message: string
+          reading_id?: string | null
+          severity: string
+          title: string
+        }
+        Update: {
+          acknowledged_by?: string[] | null
+          action_needed?: string | null
+          care_circle_id?: string
+          correlations?: Json | null
+          created_at?: string
+          id?: string
+          message?: string
+          reading_id?: string | null
+          severity?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "health_alerts_care_circle_id_fkey"
+            columns: ["care_circle_id"]
+            isOneToOne: false
+            referencedRelation: "care_circles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "health_alerts_reading_id_fkey"
+            columns: ["reading_id"]
+            isOneToOne: false
+            referencedRelation: "health_readings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      health_readings: {
+        Row: {
+          care_circle_id: string
+          care_recipient_id: string
+          created_at: string
+          id: string
+          logged_by: string
+          logged_by_name: string
+          metadata: Json | null
+          notes: string | null
+          source: string
+          type: string
+          unit: string
+          value_primary: number
+          value_secondary: number | null
+          value_tertiary: number | null
+        }
+        Insert: {
+          care_circle_id: string
+          care_recipient_id: string
+          created_at?: string
+          id?: string
+          logged_by: string
+          logged_by_name: string
+          metadata?: Json | null
+          notes?: string | null
+          source?: string
+          type: string
+          unit: string
+          value_primary: number
+          value_secondary?: number | null
+          value_tertiary?: number | null
+        }
+        Update: {
+          care_circle_id?: string
+          care_recipient_id?: string
+          created_at?: string
+          id?: string
+          logged_by?: string
+          logged_by_name?: string
+          metadata?: Json | null
+          notes?: string | null
+          source?: string
+          type?: string
+          unit?: string
+          value_primary?: number
+          value_secondary?: number | null
+          value_tertiary?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "health_readings_care_circle_id_fkey"
+            columns: ["care_circle_id"]
+            isOneToOne: false
+            referencedRelation: "care_circles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null

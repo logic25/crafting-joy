@@ -14,6 +14,7 @@ import Emergency from "./pages/Emergency";
 import Settings from "./pages/Settings";
 import Doctors from "./pages/Doctors";
 import BloodPressure from "./pages/BloodPressure";
+import Weight from "./pages/Weight";
 import Documents from "./pages/Documents";
 import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
@@ -58,6 +59,7 @@ const App = () => (
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="/doctors" element={<ProtectedRoute><Doctors /></ProtectedRoute>} />
             <Route path="/bp" element={<ProtectedRoute><BloodPressure /></ProtectedRoute>} />
+            <Route path="/weight" element={<ProtectedRoute><Weight /></ProtectedRoute>} />
             <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
             <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
