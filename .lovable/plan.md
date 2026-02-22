@@ -1,136 +1,122 @@
 
 
-# Multi-Model AI Routing + Real Cost Tracking
+# CareCircle: Full Feature Build-Out
 
-## Overview
+## What We're Building
 
-This plan implements three major improvements: (1) smart model routing that picks the right AI model based on task complexity, (2) real token/cost tracking in the database, and (3) an upgraded Admin panel showing actual costs broken down by model tier.
-
----
-
-## Step 1: Database Migration
-
-Add tracking columns to `health_alerts`:
-
-| Column | Type | Default | Purpose |
-|--------|------|---------|---------|
-| `model_used` | text | `'google/gemini-3-flash-preview'` | Which model handled this analysis |
-| `complexity` | text | `'standard'` | Routing tier: lite, standard, or pro |
-| `input_tokens` | integer | null | Actual input tokens from AI response |
-| `output_tokens` | integer | null | Actual output tokens from AI response |
-| `response_time_ms` | integer | null | How long the AI call took |
-| `estimated_cost` | numeric | null | Calculated cost based on real tokens |
+Seven workstreams that take CareCircle from a prototype with mock data to a fully functional caregiving platform.
 
 ---
 
-## Step 2: Model Router in `analyze-health-reading`
+## 1. Weight Display -- Show lbs + % Change
 
-Add a `selectModel()` function that runs BEFORE calling the AI. The logic:
+Update the Weight page trend card to show real change between readings.
+
+Example: **+3.2 lbs (+2.1%)** or **-1.5 lbs (-1.0%)**
+
+**Files:** `src/pages/Weight.tsx`
+
+---
+
+## 2. Expanded Onboarding (3 steps --> 6 steps)
+
+Every step saves real data to the database. New steps are skippable.
+
+| Step | Collects | Status |
+|------|----------|--------|
+| 1. Name your circle | Circle name | Already works |
+| 2. About your loved one | Name, DOB, doctor, hospital, conditions | Already works |
+| 3. Allergies + insurance | Allergies (name + severity), insurance, pharmacy | **New** |
+| 4. Emergency contacts | Up to 3 contacts (name, relationship, phone) | **New** |
+| 5. Upload health docs | Insurance cards, lab results, prescriptions (optional) | **New** |
+| 6. Invite family | Email + role selection, pre-added + email sent | **Fixed** |
+
+**Database changes:**
+- Add `emergency_contacts` column to `care_recipients`
+- Create `documents` table + private storage bucket
+- Create `circle_invitations` table with auto-join trigger (when invitee signs up, they land in the circle automatically)
+- New `send-invite` backend function for email notifications
+
+---
+
+## 3. ER Card -- Real Data
+
+Replace mock data in the Emergency page with actual database queries. The ER card will pull from whatever was entered during onboarding (allergies, insurance, conditions, emergency contacts, medications).
+
+**Files:** `src/pages/Emergency.tsx`, new `useCareRecipient` hook
+
+---
+
+## 4. Appointments + Doctors -- Full CRUD
+
+**Doctors page:** Add, edit, delete doctors with name, specialty, phone, address, notes.
+
+**Appointments page:** Create appointments linked to saved doctors with date/time, type, location, purpose, "questions to ask" list, and caregiver assignment.
+
+**Database:** Two new tables (`doctors`, `appointments`) with RLS policies following existing circle-member patterns.
+
+---
+
+## 5. Documents -- Real File Upload
+
+Working upload button that saves files to cloud storage with metadata (name, category, uploader). Category filter and search work against real data. Reuses the same storage bucket and table created for onboarding uploads.
+
+---
+
+## 6. Caregiver Roles -- Family + Settings
+
+**Family page:** Invite members by email, assign roles (admin / caregiver / view-only), remove members. Shows real member list from the database.
+
+**Settings page:** "Manage Circle" section with role dropdowns, edit care recipient info, edit profile, working sign-out button.
+
+---
+
+## 7. Marketing Landing Page
+
+Public page for unauthenticated visitors with:
+- Hero section + CTA ("Get Started Free")
+- Feature highlights (coordinate care, track health, ER card, family chat)
+- "How it works" visual
+- Routes to sign-up
+
+Authenticated users bypass this and go straight to their dashboard.
+
+---
+
+## Build Order
 
 ```text
-New reading arrives
-    |
-    v
-Is it within normal range?
-  (BP: systolic 90-130, diastolic 60-85)
-  (Weight: within 2% of recent average)
-  (HR: 55-90 bpm)
-    |
-    |-- YES --> Have other signal types changed in last 7 days?
-    |              |-- NO  --> LITE (gemini-2.5-flash-lite)
-    |              |-- YES --> PRO  (gemini-2.5-pro)
-    |
-    |-- NO (abnormal) --> How many signal types have data?
-                            |-- 1 type only --> STANDARD (gemini-3-flash-preview)
-                            |-- 2+ types   --> PRO (gemini-2.5-pro)
-                            |
-                            Also: medication started in last 30 days?
-                            |-- YES --> upgrade to PRO
+1. Weight display          (quick win, ~1 message)
+2. Onboarding expansion    (captures data everything else needs)
+3. ER Card DB hookup       (uses onboarding data immediately)
+4. Doctors + Appointments  (new tables + full UI)
+5. Documents upload        (storage already created in step 2)
+6. Family + Settings roles (member management)
+7. Landing page            (can be done anytime)
 ```
 
-**Lite tier** gets a minimal system prompt (just confirm normal, 1-2 sentences).
-**Standard tier** keeps the current prompt (single-vital analysis).
-**Pro tier** gets an expanded prompt with explicit cross-correlation and medication interaction instructions.
+---
 
-After the AI responds, capture `usage.prompt_tokens`, `usage.completion_tokens`, and `response_time_ms` from the gateway response and save them to the alert row.
+## Database Migrations Summary
 
-**Cost calculation per model:**
-
-| Model | Input cost (per 1M tokens) | Output cost (per 1M tokens) |
-|-------|---------------------------|----------------------------|
-| gemini-2.5-flash-lite | ~$0.075 | ~$0.30 |
-| gemini-3-flash-preview | ~$0.15 | ~$0.60 |
-| gemini-2.5-pro | ~$1.25 | ~$5.00 |
+| Migration | What |
+|-----------|------|
+| 1 | Add `emergency_contacts` jsonb to `care_recipients` |
+| 2 | Create `documents` table + storage bucket + RLS |
+| 3 | Create `circle_invitations` table + auto-join trigger |
+| 4 | Create `doctors` table + RLS |
+| 5 | Create `appointments` table + RLS |
 
 ---
 
-## Step 3: Rate Limiting
+## New Files
 
-Before calling the AI, query today's alert count for this care circle. If it exceeds 10, skip the AI call and save a simple "Reading logged" alert with severity "normal" and `model_used = 'skipped'`. The reading itself still gets saved to `health_readings`.
-
----
-
-## Step 4: Chat Model Routing in `circle-chat`
-
-Add a lightweight keyword classifier before calling the AI:
-
-- **Factual lookups** (pharmacy, doctor name, allergy list, appointment) --> `gemini-2.5-flash-lite`
-- **Trend questions** ("how has BP been", "this week") --> `gemini-2.5-flash` (current model, stays the same)
-- **Reasoning questions** ("why", "could medication cause", multiple health signals mentioned) --> `gemini-2.5-pro`
-
----
-
-## Step 5: Admin Panel Upgrades
-
-Replace hardcoded `$0.002` cost estimate with real data from the new columns:
-
-1. **Model Breakdown Card** -- show calls and cost per model tier (Lite / Standard / Pro / Skipped), with a visual bar or pie breakdown
-2. **Real Cost Totals** -- aggregate `estimated_cost` from the database instead of multiplying by a constant
-3. **Cost Projection** -- "At current pace, this month will cost $X" based on daily average
-4. **Per-Customer Cost** -- average cost per care circle
-5. **Routing Decisions** -- show recent alerts with their `complexity` and `model_used` so you can see the router in action
-
----
-
-## Files to Modify
-
-| File | Change |
-|------|--------|
-| **New migration** | Add 6 columns to `health_alerts` |
-| `supabase/functions/analyze-health-reading/index.ts` | Add `selectModel()` router, rate limiter, token/cost tracking, tiered prompts |
-| `supabase/functions/circle-chat/index.ts` | Add keyword classifier for model selection |
-| `src/pages/Admin.tsx` | Replace hardcoded costs with real DB data, add model breakdown card, cost projections, routing log |
-
----
-
-## Technical Details
-
-### analyze-health-reading changes
-
-The function will be restructured as follows:
-
-1. Fetch readings and recipient (same as now)
-2. **NEW**: Call `selectModel(newReading, byType, readings)` which returns `{ model, complexity, systemPrompt }`
-3. **NEW**: Check rate limit -- query `health_alerts` count for today for this circle
-4. Call AI gateway with the selected model and appropriate prompt
-5. **NEW**: Extract `usage.prompt_tokens` and `usage.completion_tokens` from the AI response
-6. **NEW**: Calculate `estimated_cost` using the per-model token pricing
-7. **NEW**: Measure `response_time_ms` using `Date.now()` before/after the AI call
-8. Save alert with all new tracking fields
-
-### circle-chat changes
-
-1. **NEW**: Scan the last user message for keyword patterns
-2. Select model based on classification
-3. Call AI gateway with selected model (rest stays the same)
-
-### Admin.tsx changes
-
-1. Update `HealthAlert` interface to include `model_used`, `complexity`, `input_tokens`, `output_tokens`, `estimated_cost`, `response_time_ms`
-2. Update the fetch query to include these new columns
-3. Replace `estimatedCostPerCall * count` with `SUM(estimated_cost)` from actual data
-4. Add a "Model Breakdown" card grouping alerts by `model_used`
-5. Add cost projection: `(total cost / days with data) * 30`
-6. Add per-circle cost breakdown
-7. Show `model_used` badge on each alert in the recent alerts list
+| File | Purpose |
+|------|---------|
+| `src/hooks/useCareRecipient.ts` | Fetch/update care recipient from DB |
+| `src/hooks/useDoctors.ts` | CRUD for doctors |
+| `src/hooks/useAppointments.ts` | CRUD for appointments |
+| `src/hooks/useDocuments.ts` | CRUD for documents + file upload |
+| `src/pages/Landing.tsx` | Marketing page |
+| `supabase/functions/send-invite/index.ts` | Email invite notifications |
 
