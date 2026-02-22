@@ -1,9 +1,10 @@
 import { ReactNode, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { MessageCircle, LayoutDashboard, Heart, AlertCircle, Users, Settings, Menu, X, Pill, Calendar, Stethoscope, Activity, FileText, LogOut, Scale } from "lucide-react";
+import { MessageCircle, LayoutDashboard, Heart, AlertCircle, Users, Settings, Menu, X, Pill, Calendar, Stethoscope, Activity, FileText, LogOut, Scale, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIsSuperAdmin } from "@/hooks/useAppRole";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -38,6 +39,16 @@ export function AppLayout({ children, hideNav }: AppLayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { isSuperAdmin } = useIsSuperAdmin();
+
+  // Build sidebar items dynamically to include admin when applicable
+  const fullSidebarItems = [
+    ...sidebarItems,
+    ...(isSuperAdmin ? [
+      { section: "divider" as const },
+      { icon: Shield, label: "Admin", path: "/admin" },
+    ] : []),
+  ];
 
   const displayName = user?.user_metadata?.first_name || user?.email?.split("@")[0] || "User";
 
@@ -88,7 +99,7 @@ export function AppLayout({ children, hideNav }: AppLayoutProps) {
         {/* Desktop Sidebar */}
         <aside className="hidden md:flex flex-col w-56 min-h-[calc(100vh-3.5rem)] bg-card border-r border-border py-4 px-3">
           <nav className="flex flex-col gap-0.5">
-            {sidebarItems.map((item, i) => {
+            {fullSidebarItems.map((item, i) => {
               if ('section' in item) {
                 if (item.section === 'divider') {
                   return <div key={i} className="my-2 border-t border-border" />;
@@ -148,7 +159,7 @@ export function AppLayout({ children, hideNav }: AppLayoutProps) {
           )}
         >
           <nav className="flex flex-col gap-0.5">
-            {sidebarItems.map((item, i) => {
+            {fullSidebarItems.map((item, i) => {
               if ('section' in item) {
                 if (item.section === 'divider') {
                   return <div key={i} className="my-2 border-t border-border" />;
