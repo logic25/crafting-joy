@@ -1,6 +1,6 @@
 import { ReactNode, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { MessageCircle, LayoutDashboard, Heart, AlertCircle, Users, Settings, Menu, X, Pill, Calendar, Stethoscope, Activity, FileText, LogOut } from "lucide-react";
+import { MessageCircle, LayoutDashboard, Heart, AlertCircle, Users, Settings, Menu, X, Pill, Calendar, Stethoscope, Activity, FileText, LogOut, Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,6 +25,7 @@ const sidebarItems = [
   { icon: Calendar, label: "Appointments", path: "/appointments" },
   { icon: Stethoscope, label: "Doctors", path: "/doctors" },
   { icon: Activity, label: "Blood Pressure", path: "/bp" },
+  { icon: Scale, label: "Weight", path: "/weight" },
   { icon: FileText, label: "Documents", path: "/documents" },
   { section: "divider" },
   { icon: AlertCircle, label: "ER Card", path: "/emergency", accent: true },

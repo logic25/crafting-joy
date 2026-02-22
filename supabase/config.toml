@@ -2,3 +2,6 @@ project_id = "xlsqqkesefxobixhxzsp"
 
 [functions.circle-chat]
 verify_jwt = false
+
+[functions.analyze-health-reading]
+verify_jwt = false

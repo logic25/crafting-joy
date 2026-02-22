@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, TrendingUp, TrendingDown, CheckCircle2, Circle, AlertTriangle } from "lucide-react";
+import { ChevronRight, TrendingUp, TrendingDown, CheckCircle2, Circle, AlertTriangle, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AppLayout } from "@/components/layout/AppLayout";
 import {
@@ -11,9 +11,22 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine
 } from "recharts";
+import { cn } from "@/lib/utils";
+import { useCareCircle } from "@/hooks/useCareCircle";
+import { useHealthAlerts, HealthAlert } from "@/hooks/useHealthAlerts";
+
+const severityConfig: Record<string, { bg: string; icon: string }> = {
+  normal: { bg: "bg-success/10 border-success/25", icon: "💚" },
+  watch: { bg: "bg-warning/10 border-warning/25", icon: "👀" },
+  attention: { bg: "bg-warning/15 border-warning/40", icon: "⚠️" },
+  urgent: { bg: "bg-destructive/10 border-destructive/25", icon: "🚨" },
+};
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { data: circle } = useCareCircle();
+  const { data: healthAlerts = [] } = useHealthAlerts(circle?.careCircleId, 1);
+  const latestAlert = healthAlerts[0];
 
   const latestBP = bpReadings[0];
   const bpChartData = [...bpReadings].reverse().map((r) => ({
@@ -66,6 +79,33 @@ const Dashboard = () => {
             </p>
           </div>
         </div>
+
+        {/* Health Alert from Circle */}
+        {latestAlert && (
+          <button
+            onClick={() => navigate("/bp")}
+            className={cn(
+              "w-full flex items-start gap-3 rounded-xl border px-4 py-3 text-left transition-colors hover:opacity-90",
+              severityConfig[latestAlert.severity]?.bg || "bg-muted/10 border-border"
+            )}
+          >
+            <span className="text-lg flex-shrink-0 mt-0.5">
+              {severityConfig[latestAlert.severity]?.icon || "📊"}
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-foreground">{latestAlert.title}</p>
+              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{latestAlert.message}</p>
+              {latestAlert.correlations && (latestAlert.correlations as string[]).length > 0 && (
+                <div className="mt-1.5 flex flex-wrap gap-1">
+                  {(latestAlert.correlations as string[]).slice(0, 2).map((c, i) => (
+                    <span key={i} className="text-[10px] bg-foreground/5 rounded-full px-2 py-0.5">{c}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-1" />
+          </button>
+        )}
 
         {/* Two-column top grid */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
