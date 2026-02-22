@@ -43,6 +43,7 @@ interface CareRecipient {
 interface HealthAlert {
   id: string;
   care_circle_id: string;
+  reading_id: string | null;
   severity: string;
   title: string;
   message: string;
@@ -127,6 +128,30 @@ export default function Admin() {
     acc[r.type] = (acc[r.type] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
+
+  // AI usage by feature — join alerts to their triggering reading type
+  const readingTypeMap = new Map(healthReadings.map((r) => [r.id, r.type]));
+  const aiUsageByFeature = healthAlerts.reduce((acc, alert) => {
+    const readingType = alert.reading_id ? readingTypeMap.get(alert.reading_id) || "unknown" : "unknown";
+    const featureLabel =
+      readingType === "bp" ? "Blood Pressure Analysis" :
+      readingType === "weight" ? "Weight Analysis" :
+      readingType === "heart_rate" ? "Heart Rate Analysis" :
+      readingType === "steps" ? "Activity Analysis" :
+      readingType === "sleep" ? "Sleep Analysis" :
+      readingType === "glucose" ? "Glucose Analysis" :
+      readingType === "unknown" ? "Other" :
+      `${readingType} Analysis`;
+    acc[featureLabel] = (acc[featureLabel] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  // Sort features by usage descending
+  const sortedFeatures = Object.entries(aiUsageByFeature).sort((a, b) => b[1] - a[1]);
+
+  // Estimated cost per analysis (gemini-3-flash-preview is ~$0.001-0.003 per call)
+  const estimatedCostPerCall = 0.002;
+  const estimatedTotalCost = totalAnalyses * estimatedCostPerCall;
 
   // Alerts by day (last 7 days)
   const today = new Date();
@@ -233,7 +258,7 @@ export default function Admin() {
                   </Badge>
                 </div>
                 <Separator className="my-3" />
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-3 gap-4 text-sm">
                   <div>
                     <p className="text-xs text-muted-foreground">Analyses per reading</p>
                     <p className="font-semibold text-foreground">1 API call</p>
@@ -242,7 +267,57 @@ export default function Admin() {
                     <p className="text-xs text-muted-foreground">Avg response time</p>
                     <p className="font-semibold text-foreground">~1-2 seconds</p>
                   </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Est. total cost</p>
+                    <p className="font-semibold text-foreground">${estimatedTotalCost.toFixed(3)}</p>
+                  </div>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* AI Usage by Feature */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">AI Usage by Feature</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {sortedFeatures.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">No AI usage yet</p>
+                ) : (
+                  sortedFeatures.map(([feature, count]) => {
+                    const pct = totalAnalyses > 0 ? (count / totalAnalyses) * 100 : 0;
+                    const featureCost = count * estimatedCostPerCall;
+                    return (
+                      <div key={feature} className="space-y-1">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-foreground font-medium">{feature}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">${featureCost.toFixed(3)}</span>
+                            <Badge variant="outline" className="text-xs">{count} calls</Badge>
+                          </div>
+                        </div>
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-primary rounded-full transition-all"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+                {sortedFeatures.length > 0 && (
+                  <Separator className="my-2" />
+                )}
+                {sortedFeatures.length > 0 && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-semibold text-foreground">Total</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-foreground">${estimatedTotalCost.toFixed(3)}</span>
+                      <Badge variant="secondary" className="text-xs">{totalAnalyses} calls</Badge>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
