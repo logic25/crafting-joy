@@ -20,7 +20,10 @@ import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 import Admin from "./pages/Admin";
 import Install from "./pages/Install";
+import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
 import { useIsSuperAdmin } from "@/hooks/useAppRole";
+import { useInactivityLogout } from "@/hooks/useInactivityLogout";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +44,11 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+const InactivityGuard = ({ children }: { children: React.ReactNode }) => {
+  useInactivityLogout();
+  return <>{children}</>;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -48,25 +56,29 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <Routes>
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/onboarding" element={<Onboarding />} />
-            <Route path="/" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
-            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/appointments" element={<ProtectedRoute><Appointments /></ProtectedRoute>} />
-            <Route path="/medications" element={<ProtectedRoute><Medications /></ProtectedRoute>} />
-            <Route path="/family" element={<ProtectedRoute><Family /></ProtectedRoute>} />
-            <Route path="/emergency" element={<ProtectedRoute><Emergency /></ProtectedRoute>} />
-            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-            <Route path="/doctors" element={<ProtectedRoute><Doctors /></ProtectedRoute>} />
-            <Route path="/bp" element={<ProtectedRoute><BloodPressure /></ProtectedRoute>} />
-            <Route path="/weight" element={<ProtectedRoute><Weight /></ProtectedRoute>} />
-            <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
-            <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
-            <Route path="/install" element={<Install />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <InactivityGuard>
+            <Routes>
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/onboarding" element={<Onboarding />} />
+              <Route path="/" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/appointments" element={<ProtectedRoute><Appointments /></ProtectedRoute>} />
+              <Route path="/medications" element={<ProtectedRoute><Medications /></ProtectedRoute>} />
+              <Route path="/family" element={<ProtectedRoute><Family /></ProtectedRoute>} />
+              <Route path="/emergency" element={<ProtectedRoute><Emergency /></ProtectedRoute>} />
+              <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+              <Route path="/doctors" element={<ProtectedRoute><Doctors /></ProtectedRoute>} />
+              <Route path="/bp" element={<ProtectedRoute><BloodPressure /></ProtectedRoute>} />
+              <Route path="/weight" element={<ProtectedRoute><Weight /></ProtectedRoute>} />
+              <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
+              <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
+              <Route path="/install" element={<Install />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/terms" element={<Terms />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </InactivityGuard>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
