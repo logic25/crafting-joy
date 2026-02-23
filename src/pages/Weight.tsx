@@ -1,7 +1,11 @@
 import { useState } from "react";
-import { Plus, TrendingDown, TrendingUp, Loader2, Hand, Smartphone } from "lucide-react";
+import { Plus, TrendingDown, TrendingUp, Loader2, Hand, Smartphone, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AppLayout } from "@/components/layout/AppLayout";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { format, formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import {
@@ -16,6 +20,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useCareCircle } from "@/hooks/useCareCircle";
 import { useHealthReadings, useLogHealthReading, useAnalyzeReading } from "@/hooks/useHealthReadings";
 import { useHealthAlerts } from "@/hooks/useHealthAlerts";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 
 const severityColors: Record<string, string> = {
   normal: "bg-success/10 border-success/25 text-success",
@@ -35,6 +41,18 @@ const Weight = () => {
   const [newWeight, setNewWeight] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+  const queryClient = useQueryClient();
+
+  const handleDeleteReading = async (id: string) => {
+    const { error } = await supabase.from("health_readings").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Error", description: "Failed to delete reading.", variant: "destructive" });
+    } else {
+      toast({ title: "Reading deleted" });
+      queryClient.invalidateQueries({ queryKey: ["health-readings"] });
+      queryClient.invalidateQueries({ queryKey: ["health-alerts"] });
+    }
+  };
 
   const weightAlerts = alerts.filter(a => {
     const relatedReading = readings.find(r => r.id === a.reading_id);
@@ -244,9 +262,28 @@ const Weight = () => {
                       <p className="text-xs text-muted-foreground">{r.source === "manual" ? "Manual" : r.source}</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm text-foreground">{r.logged_by_name}</p>
-                    <p className="text-xs text-muted-foreground">{format(new Date(r.created_at), "MMM d, h:mm a")}</p>
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <p className="text-sm text-foreground">{r.logged_by_name}</p>
+                      <p className="text-xs text-muted-foreground">{format(new Date(r.created_at), "MMM d, h:mm a")}</p>
+                    </div>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <button className="text-muted-foreground hover:text-destructive transition-colors p-1">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete reading?</AlertDialogTitle>
+                          <AlertDialogDescription>This will permanently remove this {Number(r.value_primary)} lbs reading.</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDeleteReading(r.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
               ))}
