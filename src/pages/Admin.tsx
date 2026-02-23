@@ -3,7 +3,7 @@ import ReactMarkdown from "react-markdown";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, Heart, Activity, Shield, Search, Brain, Zap, AlertTriangle as AlertTriangleIcon, TrendingUp, DollarSign, Key, Eye, EyeOff, Loader2, MessageSquare, CheckCircle, XCircle, Clock } from "lucide-react";
+import { Users, Heart, Activity, Shield, Search, Brain, Zap, AlertTriangle as AlertTriangleIcon, TrendingUp, DollarSign, Key, Eye, EyeOff, Loader2, MessageSquare, CheckCircle, XCircle, Clock, Plus, Trash2, Map as MapIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -11,6 +11,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { RoadmapKanban } from "@/components/admin/RoadmapKanban";
 
 interface Profile {
   id: string;
@@ -230,7 +245,7 @@ export default function Admin() {
   }, {} as Record<string, number>);
 
   // AI usage by feature
-  const readingTypeMap = new Map(healthReadings.map((r) => [r.id, r.type]));
+  const readingTypeMap = new Map<string, string>(healthReadings.map((r) => [r.id, r.type] as [string, string]));
   const aiUsageByFeature = healthAlerts.reduce((acc, alert) => {
     const readingType = alert.reading_id ? readingTypeMap.get(alert.reading_id) || "unknown" : "unknown";
     const featureLabel =
@@ -345,6 +360,7 @@ export default function Admin() {
             </TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="circles">Care Circles</TabsTrigger>
+            <TabsTrigger value="roadmap" className="gap-1"><MapIcon className="h-3 w-3" />Roadmap</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
@@ -872,6 +888,11 @@ export default function Admin() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Roadmap Kanban Tab */}
+          <TabsContent value="roadmap" className="space-y-4">
+            <RoadmapKanban />
           </TabsContent>
         </Tabs>
       </div>
