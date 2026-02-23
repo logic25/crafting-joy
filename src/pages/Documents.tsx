@@ -2,6 +2,7 @@ import { Upload, FileText, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { UploadDocumentSheet } from "@/components/documents/UploadDocumentSheet";
 import { useState } from "react";
 
 const categories = [
@@ -39,10 +40,7 @@ const Documents = () => {
             <h1 className="text-2xl font-bold text-foreground">Documents</h1>
             <p className="text-sm text-muted-foreground">Mom's medical records & files</p>
           </div>
-          <Button className="gradient-primary gap-2 h-9">
-            <Upload className="h-4 w-4" />
-            <span className="hidden sm:inline">Upload</span>
-          </Button>
+          <UploadDocumentSheet />
         </div>
 
         {/* Search */}

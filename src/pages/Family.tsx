@@ -7,6 +7,7 @@
  import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { InviteEmailSheet } from "@/components/family/InviteEmailSheet";
+import { AddMemberSheet } from "@/components/family/AddMemberSheet";
  
  const roleConfig = {
    admin: { label: "Admin", color: "bg-primary text-primary-foreground" },
@@ -31,7 +32,10 @@ import { InviteEmailSheet } from "@/components/family/InviteEmailSheet";
                 {caregivers.length} caregivers coordinating care
               </p>
             </div>
-            <InviteEmailSheet />
+            <div className="flex gap-2">
+              <AddMemberSheet />
+              <InviteEmailSheet />
+            </div>
           </div>
  
          {/* Family Members */}

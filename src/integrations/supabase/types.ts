@@ -38,6 +38,93 @@ export type Database = {
         }
         Relationships: []
       }
+      appointments: {
+        Row: {
+          assigned_caregiver_id: string | null
+          assigned_caregiver_name: string | null
+          care_circle_id: string
+          care_recipient_id: string
+          coverage_status: string
+          created_at: string
+          created_by: string
+          date_time: string
+          duration: number | null
+          id: string
+          location: string | null
+          pre_appointment_notes: string | null
+          provider_id: string | null
+          provider_name: string
+          provider_specialty: string | null
+          purpose: string
+          questions_to_ask: string[] | null
+          status: string
+          type: string
+          updated_at: string
+          visit_summary: Json | null
+        }
+        Insert: {
+          assigned_caregiver_id?: string | null
+          assigned_caregiver_name?: string | null
+          care_circle_id: string
+          care_recipient_id: string
+          coverage_status?: string
+          created_at?: string
+          created_by: string
+          date_time: string
+          duration?: number | null
+          id?: string
+          location?: string | null
+          pre_appointment_notes?: string | null
+          provider_id?: string | null
+          provider_name: string
+          provider_specialty?: string | null
+          purpose: string
+          questions_to_ask?: string[] | null
+          status?: string
+          type?: string
+          updated_at?: string
+          visit_summary?: Json | null
+        }
+        Update: {
+          assigned_caregiver_id?: string | null
+          assigned_caregiver_name?: string | null
+          care_circle_id?: string
+          care_recipient_id?: string
+          coverage_status?: string
+          created_at?: string
+          created_by?: string
+          date_time?: string
+          duration?: number | null
+          id?: string
+          location?: string | null
+          pre_appointment_notes?: string | null
+          provider_id?: string | null
+          provider_name?: string
+          provider_specialty?: string | null
+          purpose?: string
+          questions_to_ask?: string[] | null
+          status?: string
+          type?: string
+          updated_at?: string
+          visit_summary?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_care_circle_id_fkey"
+            columns: ["care_circle_id"]
+            isOneToOne: false
+            referencedRelation: "care_circles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
@@ -197,6 +284,62 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "care_recipients_care_circle_id_fkey"
+            columns: ["care_circle_id"]
+            isOneToOne: false
+            referencedRelation: "care_circles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documents: {
+        Row: {
+          care_circle_id: string
+          care_recipient_id: string | null
+          category: string
+          created_at: string
+          file_path: string
+          file_size: number | null
+          id: string
+          mime_type: string | null
+          name: string
+          notes: string | null
+          tags: string[] | null
+          uploaded_by: string
+          uploaded_by_name: string
+        }
+        Insert: {
+          care_circle_id: string
+          care_recipient_id?: string | null
+          category?: string
+          created_at?: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          name: string
+          notes?: string | null
+          tags?: string[] | null
+          uploaded_by: string
+          uploaded_by_name: string
+        }
+        Update: {
+          care_circle_id?: string
+          care_recipient_id?: string | null
+          category?: string
+          created_at?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          name?: string
+          notes?: string | null
+          tags?: string[] | null
+          uploaded_by?: string
+          uploaded_by_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_care_circle_id_fkey"
             columns: ["care_circle_id"]
             isOneToOne: false
             referencedRelation: "care_circles"
@@ -411,6 +554,74 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      providers: {
+        Row: {
+          address_city: string | null
+          address_state: string | null
+          address_street: string | null
+          address_zip: string | null
+          care_circle_id: string
+          created_at: string
+          email: string | null
+          fax: string | null
+          id: string
+          name: string
+          notes: string | null
+          office_hours: string | null
+          phone: string | null
+          portal_url: string | null
+          specialty: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          address_city?: string | null
+          address_state?: string | null
+          address_street?: string | null
+          address_zip?: string | null
+          care_circle_id: string
+          created_at?: string
+          email?: string | null
+          fax?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          office_hours?: string | null
+          phone?: string | null
+          portal_url?: string | null
+          specialty?: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          address_city?: string | null
+          address_state?: string | null
+          address_street?: string | null
+          address_zip?: string | null
+          care_circle_id?: string
+          created_at?: string
+          email?: string | null
+          fax?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          office_hours?: string | null
+          phone?: string | null
+          portal_url?: string | null
+          specialty?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "providers_care_circle_id_fkey"
+            columns: ["care_circle_id"]
+            isOneToOne: false
+            referencedRelation: "care_circles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
