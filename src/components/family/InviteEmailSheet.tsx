@@ -21,18 +21,47 @@ function buildEmailText(accessCode: string) {
 
 Hey!
 
-I set up an app called CareCircle so we can coordinate Mom's care in one place instead of scattered group texts. It tracks her medications, appointments, vitals, and has an AI assistant you can ask anything about her health.
+I set up an app called CareCircle so we can coordinate Mom's care in one place instead of scattered group texts. It tracks her medications, appointments, vitals, and has an AI assistant named Circle you can ask anything about Mom's health.
 
-Here's how to get started (takes 2 minutes):
+━━━━━━━━━━━━━━━━━━━━
+📲 GETTING STARTED (2 min)
+━━━━━━━━━━━━━━━━━━━━
 
-1. Go to ${APP_URL}
-2. Click "Get started" and then "Sign up"
-3. Enter this access code when asked: ${accessCode || "[ACCESS CODE]"}
-4. Fill in your name and you're in!
+1. Open this link on your phone: ${APP_URL}
+2. Click "Get started" → "Sign up"
+3. Enter this access code: ${accessCode || "[ACCESS CODE]"}
+4. Fill in your name — you're in!
 
-Once you're in, the app will give you a quick tour so you know where everything is.
+━━━━━━━━━━━━━━━━━━━━
+📌 INSTALL IT LIKE AN APP
+━━━━━━━━━━━━━━━━━━━━
 
-Let me know if you have any questions!`;
+iPhone (Safari):
+  • Tap the Share button (square with arrow)
+  • Scroll down → "Add to Home Screen"
+
+Android (Chrome):
+  • Tap the ⋮ menu (top right)
+  • Tap "Add to Home Screen" or "Install App"
+
+Or visit: ${APP_URL}/install for step-by-step instructions.
+
+━━━━━━━━━━━━━━━━━━━━
+💬 USING CIRCLE (AI Assistant)
+━━━━━━━━━━━━━━━━━━━━
+
+Go to the Chat tab and ask Circle anything about Mom:
+  • "What meds does Mom take?"
+  • "When is her next appointment?"
+  • "Is her blood pressure trending up?"
+  • "What should we ask Dr. Fuzaylov?"
+
+Special command:
+  /feedback [your idea] — Submit an idea or suggestion for the app. Example: "/feedback it would be great to get reminders for Mom's meds"
+
+━━━━━━━━━━━━━━━━━━━━
+
+Once you're in, the app will give you a quick tour so you know where everything is. Let me know if you have any questions!`;
 }
 
 export function InviteEmailSheet() {
