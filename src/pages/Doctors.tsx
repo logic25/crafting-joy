@@ -1,12 +1,28 @@
-import { Phone, MapPin, Clock, Stethoscope } from "lucide-react";
+import { Phone, MapPin, Clock, Stethoscope, Trash2 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AddProviderSheet } from "@/components/doctors/AddProviderSheet";
-import { useQuery } from "@tanstack/react-query";
+import { EditProviderSheet } from "@/components/doctors/EditProviderSheet";
+import { Button } from "@/components/ui/button";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCareCircle } from "@/hooks/useCareCircle";
+import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const Doctors = () => {
   const { data: circle } = useCareCircle();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data: providers = [], isLoading } = useQuery({
     queryKey: ["providers", circle?.careCircleId],
@@ -22,8 +38,43 @@ const Doctors = () => {
     },
   });
 
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase.from("providers").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Error", description: "Couldn't delete provider.", variant: "destructive" });
+    } else {
+      toast({ title: "Provider deleted" });
+      queryClient.invalidateQueries({ queryKey: ["providers"] });
+    }
+  };
+
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["providers"] });
+
   const doctors = providers.filter((p) => p.type === "doctor");
   const pharmacies = providers.filter((p) => p.type !== "doctor");
+
+  const ProviderActions = ({ provider }: { provider: typeof providers[0] }) => (
+    <div className="flex items-center gap-1">
+      <EditProviderSheet provider={provider} />
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive">
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete provider?</AlertDialogTitle>
+            <AlertDialogDescription>This will permanently remove {provider.name}.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleDelete(provider.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
 
   return (
     <AppLayout>
@@ -33,7 +84,7 @@ const Doctors = () => {
             <h1 className="text-2xl font-bold text-foreground">Doctors & Providers</h1>
             <p className="text-sm text-muted-foreground">Mom's care team contacts</p>
           </div>
-          <AddProviderSheet />
+          <AddProviderSheet onAdded={invalidate} />
         </div>
 
         {isLoading ? (
@@ -58,6 +109,7 @@ const Doctors = () => {
                       <h3 className="text-base font-semibold text-foreground">{doc.name}</h3>
                       <p className="text-sm text-primary font-medium">{doc.specialty}</p>
                     </div>
+                    <ProviderActions provider={doc} />
                   </div>
                   <div className="mt-3 space-y-1.5">
                     {doc.phone && (
@@ -91,7 +143,10 @@ const Doctors = () => {
                 <h2 className="text-lg font-semibold text-foreground pt-2">Pharmacy</h2>
                 {pharmacies.map((p) => (
                   <div key={p.id} className="rounded-xl border border-border bg-card p-4 shadow-card">
-                    <h3 className="text-base font-semibold text-foreground">{p.name}</h3>
+                    <div className="flex items-start justify-between">
+                      <h3 className="text-base font-semibold text-foreground">{p.name}</h3>
+                      <ProviderActions provider={p} />
+                    </div>
                     <div className="mt-2 space-y-1.5">
                       {p.phone && (
                         <a href={`tel:${p.phone}`} className="flex items-center gap-2 text-sm text-foreground hover:text-primary transition-colors">

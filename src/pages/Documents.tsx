@@ -1,9 +1,25 @@
-import { Upload, FileText, Search } from "lucide-react";
+import { Upload, FileText, Search, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { UploadDocumentSheet } from "@/components/documents/UploadDocumentSheet";
 import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useCareCircle } from "@/hooks/useCareCircle";
+import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { format } from "date-fns";
 
 const categories = [
   { key: "all", label: "All" },
@@ -13,24 +29,59 @@ const categories = [
   { key: "insurance", label: "Insurance" },
   { key: "prescriptions", label: "Prescriptions" },
   { key: "legal", label: "Legal" },
-];
-
-// Placeholder docs since we don't have documents in mock data yet
-const sampleDocs = [
-  { id: "1", name: "Blood Work Results - Jan 2026", category: "lab-results", uploadedBy: "Maria", date: "Jan 20, 2026" },
-  { id: "2", name: "Dr. Fuzaylov Visit Summary", category: "discharge", uploadedBy: "Manny", date: "Feb 1, 2026" },
-  { id: "3", name: "Insurance Card - Healthfirst", category: "insurance", uploadedBy: "Manny", date: "Jan 5, 2026" },
+  { key: "other", label: "Other" },
 ];
 
 const Documents = () => {
   const [activeCategory, setActiveCategory] = useState("all");
   const [search, setSearch] = useState("");
+  const { data: circle } = useCareCircle();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
-  const filteredDocs = sampleDocs.filter((d) => {
+  const { data: documents = [], isLoading } = useQuery({
+    queryKey: ["documents", circle?.careCircleId],
+    enabled: !!circle?.careCircleId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("documents")
+        .select("*")
+        .eq("care_circle_id", circle!.careCircleId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const filteredDocs = documents.filter((d) => {
     const matchesCategory = activeCategory === "all" || d.category === activeCategory;
     const matchesSearch = !search || d.name.toLowerCase().includes(search.toLowerCase());
     return matchesCategory && matchesSearch;
   });
+
+  const handleView = async (filePath: string) => {
+    const { data, error } = await supabase.storage
+      .from("documents")
+      .createSignedUrl(filePath, 3600);
+    if (error || !data?.signedUrl) {
+      toast({ title: "Error", description: "Could not generate link", variant: "destructive" });
+      return;
+    }
+    window.open(data.signedUrl, "_blank");
+  };
+
+  const handleDelete = async (id: string, filePath: string) => {
+    await supabase.storage.from("documents").remove([filePath]);
+    const { error } = await supabase.from("documents").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Error", description: "Failed to delete", variant: "destructive" });
+    } else {
+      toast({ title: "Document deleted" });
+      queryClient.invalidateQueries({ queryKey: ["documents"] });
+    }
+  };
+
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["documents"] });
 
   return (
     <AppLayout>
@@ -40,10 +91,9 @@ const Documents = () => {
             <h1 className="text-2xl font-bold text-foreground">Documents</h1>
             <p className="text-sm text-muted-foreground">Mom's medical records & files</p>
           </div>
-          <UploadDocumentSheet />
+          <UploadDocumentSheet onUploaded={invalidate} />
         </div>
 
-        {/* Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -54,7 +104,6 @@ const Documents = () => {
           />
         </div>
 
-        {/* Category filters */}
         <div className="flex gap-2 overflow-x-auto pb-1">
           {categories.map((cat) => (
             <button
@@ -71,8 +120,13 @@ const Documents = () => {
           ))}
         </div>
 
-        {/* Documents list */}
-        {filteredDocs.length > 0 ? (
+        {isLoading ? (
+          <div className="space-y-2.5">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="rounded-xl border border-border bg-card p-4 shadow-card animate-pulse h-16" />
+            ))}
+          </div>
+        ) : filteredDocs.length > 0 ? (
           <div className="space-y-2.5">
             {filteredDocs.map((doc) => (
               <div key={doc.id} className="rounded-xl border border-border bg-card p-4 shadow-card flex items-center gap-3">
@@ -82,12 +136,29 @@ const Documents = () => {
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-foreground text-sm truncate">{doc.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {doc.uploadedBy} · {doc.date}
+                    {doc.uploaded_by_name} · {format(new Date(doc.created_at), "MMM d, yyyy")}
                   </p>
                 </div>
-                <Button variant="ghost" size="sm" className="text-primary text-xs h-7">
+                <Button variant="ghost" size="sm" className="text-primary text-xs h-7" onClick={() => handleView(doc.file_path)}>
                   View
                 </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete document?</AlertDialogTitle>
+                      <AlertDialogDescription>This will permanently remove "{doc.name}".</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleDelete(doc.id, doc.file_path)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             ))}
           </div>
