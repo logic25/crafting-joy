@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { UploadDocumentSheet } from "@/components/documents/UploadDocumentSheet";
+import { FaxDocumentSheet } from "@/components/documents/FaxDocumentSheet";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,6 +39,19 @@ const Documents = () => {
   const { data: circle } = useCareCircle();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  const { data: providers = [] } = useQuery({
+    queryKey: ["providers", circle?.careCircleId],
+    enabled: !!circle?.careCircleId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("providers")
+        .select("id, name, fax")
+        .eq("care_circle_id", circle!.careCircleId);
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const { data: documents = [], isLoading } = useQuery({
     queryKey: ["documents", circle?.careCircleId],
@@ -91,7 +105,10 @@ const Documents = () => {
             <h1 className="text-2xl font-bold text-foreground">Documents</h1>
             <p className="text-sm text-muted-foreground">Mom's medical records & files</p>
           </div>
-          <UploadDocumentSheet onUploaded={invalidate} />
+          <div className="flex items-center gap-2">
+            <FaxDocumentSheet providers={providers} />
+            <UploadDocumentSheet onUploaded={invalidate} />
+          </div>
         </div>
 
         <div className="relative">

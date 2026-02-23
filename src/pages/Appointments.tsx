@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Calendar, List, MapPin, Clock, User, AlertTriangle, HelpCircle, ChevronLeft, ChevronRight, CalendarDays, Hand, XCircle } from "lucide-react";
+import { Calendar, List, MapPin, Clock, User, AlertTriangle, HelpCircle, ChevronLeft, ChevronRight, CalendarDays, Hand, XCircle, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -119,6 +119,18 @@ const Appointments = () => {
               <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
               <span>{apt.location}</span>
             </div>
+          )}
+
+          {!isPast && (apt as any).telehealth_url && (
+            <a
+              href={(apt as any).telehealth_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-sm font-medium hover:bg-primary/20 transition-colors"
+            >
+              <Video className="h-4 w-4" />
+              Join Video Call
+            </a>
           )}
 
           {!isPast && apt.questions_to_ask && apt.questions_to_ask.length > 0 && (

@@ -39,6 +39,7 @@ export function AddAppointmentSheet({ onAdded }: AddAppointmentSheetProps) {
     location: "",
     purpose: "",
     notes: "",
+    telehealthUrl: "",
   });
 
   const handleSave = async () => {
@@ -60,6 +61,7 @@ export function AddAppointmentSheet({ onAdded }: AddAppointmentSheetProps) {
       purpose: form.purpose,
       pre_appointment_notes: form.notes || null,
       created_by: user.id,
+      telehealth_url: form.telehealthUrl || null,
     } as any);
 
     setSaving(false);
@@ -68,7 +70,7 @@ export function AddAppointmentSheet({ onAdded }: AddAppointmentSheetProps) {
       console.error(error);
     } else {
       toast({ title: "Appointment added" });
-      setForm({ providerName: "", providerSpecialty: "", dateTime: "", type: "primary-care", location: "", purpose: "", notes: "" });
+      setForm({ providerName: "", providerSpecialty: "", dateTime: "", type: "primary-care", location: "", purpose: "", notes: "", telehealthUrl: "" });
       setOpen(false);
       onAdded?.();
     }
@@ -117,6 +119,11 @@ export function AddAppointmentSheet({ onAdded }: AddAppointmentSheetProps) {
           <div className="space-y-2">
             <Label>Purpose *</Label>
             <Input value={form.purpose} onChange={(e) => setForm(f => ({ ...f, purpose: e.target.value }))} placeholder="Follow-up on blood pressure" />
+          </div>
+          <div className="space-y-2">
+            <Label>Telehealth Link</Label>
+            <Input value={form.telehealthUrl} onChange={(e) => setForm(f => ({ ...f, telehealthUrl: e.target.value }))} placeholder="https://zoom.us/j/..." />
+            <p className="text-xs text-muted-foreground">Paste a Zoom, Teams, or Doxy.me link for virtual visits</p>
           </div>
           <div className="space-y-2">
             <Label>Notes</Label>
