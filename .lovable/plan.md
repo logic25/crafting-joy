@@ -1,102 +1,112 @@
 
 
-## CareThread Rebrand + 3 Critical Feature Fixes (Circle AI stays)
+## Build Missing Features + Admin Roadmap Kanban
 
-Same plan as before with one key change: **the AI assistant keeps the name "Circle"**. Only the app name changes from CareCircle to CareThread.
-
----
-
-### Part 1: Rebrand CareCircle to CareThread (app name only)
-
-| File | What changes |
-|------|-------------|
-| `vite.config.ts` | PWA manifest `name` and `short_name` to CareThread |
-| `capacitor.config.ts` | `appName` to CareThread |
-| `index.html` | `<title>`, meta tags, OG tags to CareThread |
-| `src/components/layout/AppLayout.tsx` | Header branding text to CareThread |
-| `src/pages/Auth.tsx` | Logo text to CareThread |
-| `src/pages/Landing.tsx` | All "CareCircle" becomes "CareThread". **"Circle AI" stays as "Circle AI"** |
-| `src/pages/Install.tsx` | All "CareCircle" to CareThread |
-| `src/pages/Chat.tsx` | Welcome message says "I'm Circle" (unchanged). Loading indicator stays "C" |
-| `src/pages/Onboarding.tsx` | Placeholder text to "Mom's Care Thread", info box updated |
-| `src/pages/Terms.tsx` | CareCircle to CareThread, email to `legal@thecarethread.com` |
-| `src/pages/Privacy.tsx` | CareCircle to CareThread, email to `privacy@thecarethread.com` |
-| `src/components/family/InviteEmailSheet.tsx` | "CareCircle" to "CareThread" in invite text. Circle AI references stay |
-| `src/components/tour/GuidedTour.tsx` | `TOUR_KEY` to `carethread_tour_completed`. "Circle AI" stays in tour steps |
-| `src/components/chat/MessageBubble.tsx` | No changes needed (avatar already shows "C" for Circle) |
-| `supabase/functions/circle-chat/index.ts` | FEEDBACK_SYSTEM_PROMPT: "CareCircle" to "CareThread". "Circle" stays as the AI name |
-| `src/types/index.ts` | Update comment if it says CareCircle |
-| `README.md` | CareCircle to CareThread. Circle AI references stay |
-
-**Access code:** Database UPDATE from `carecircle2025` to `carethread2025`.
-
-**What stays the same:**
-- AI assistant name: **Circle** (everywhere)
-- Avatar letter: **C**
-- `senderName`: "Circle"
-- Edge function folder: `circle-chat`
-- All database table names
+This implements 5 core feature gaps and adds a Roadmap Kanban tab to the Admin dashboard. The roadmap will be seeded with 15 items (some promoted from backlog to "planned" per your request).
 
 ---
 
-### Part 2: Fix 1 -- Medications Table + CRUD
+### 1. Wire Documents Page to Real Data
+
+**Edit `src/pages/Documents.tsx`:**
+- Remove hardcoded `sampleDocs` array
+- Add `useQuery` to fetch from `documents` table filtered by `care_circle_id` (via `useCareCircle`)
+- Wire category filter and search against fetched data
+- "View" button generates a signed URL from Supabase Storage and opens in new tab
+- Pass `onUploaded` callback to `UploadDocumentSheet` to trigger query invalidation
+- Add delete button (confirmation dialog) for circle admins
+
+### 2. "I'll Go" Volunteer Button on Appointments
+
+**Edit `src/pages/Appointments.tsx`:**
+- Next to "Needs someone to attend" warning, add an "I'll go" button
+- On click: update `assigned_caregiver_id`, `assigned_caregiver_name`, `coverage_status` to "assigned"
+- If current user is already assigned, show "Can't make it" button to unclaim
+- Add a "Past" section showing appointments with `date_time < now()` or `status = 'completed'`
+- Past appointments show "Add Summary" button (opens VisitSummarySheet)
+
+### 3. Post-Visit Summary Sheet
+
+**Create `src/components/appointments/VisitSummarySheet.tsx`:**
+- Form with: assessment (textarea), next steps (textarea), medication changes (textarea), concerning flag (checkbox)
+- Saves as JSON to existing `visit_summary` JSONB column
+- Sets `status` to "completed"
+- Invalidates appointments query on save
+
+### 4. Edit and Delete Providers
+
+**Create `src/components/doctors/EditProviderSheet.tsx`:**
+- Same form fields as AddProviderSheet but pre-populated with existing data
+- Calls `supabase.from("providers").update(...)` on save
+- Invalidates providers query
+
+**Edit `src/pages/Doctors.tsx`:**
+- Add edit (pencil) and delete (trash) icons on each provider card
+- Edit opens EditProviderSheet with provider data
+- Delete shows confirmation dialog, then removes the provider
+- Query invalidation on both actions
+
+### 5. Persist Notification Preferences
 
 **Database migration:**
-- Create `medications` table: id, care_circle_id, care_recipient_id, name, dosage, frequency, instructions, purpose, prescriber, pharmacy, quantity, refills_remaining, start_date, end_date, is_active, added_by, source, notes, created_at, updated_at
-- RLS policies using `is_circle_member()` for SELECT/INSERT/UPDATE, `is_circle_admin()` for DELETE
+- Create `notification_preferences` table: id (uuid PK), user_id (uuid, unique, references auth.users), appointment_reminders (boolean default true), refill_reminders (boolean default true), coverage_requests (boolean default true), family_updates (boolean default true), created_at, updated_at
+- RLS: users can SELECT/INSERT/UPDATE/DELETE only their own row (`user_id = auth.uid()`)
+
+**Edit `src/pages/Settings.tsx`:**
+- Fetch preferences on mount from `notification_preferences` for current user
+- Toggle switches call upsert to update the database row
+- Create row on first toggle if none exists
+
+### 6. Admin Roadmap Kanban Board
+
+**Database migration:**
+- Create `roadmap_items` table: id (uuid PK), title (text NOT NULL), description (text), status (text NOT NULL default 'backlog'), category (text), priority (integer default 0), created_at (timestamptz default now()), updated_at (timestamptz default now())
+- RLS: super admins can full CRUD; all authenticated users can SELECT
 - Updated_at trigger
+- Seed with 15 items (see below)
 
-**New file: `src/hooks/useMedications.ts`**
-- `useMedications(careCircleId)` -- fetch all, ordered by is_active DESC, name ASC
-- `useAddMedication()` -- insert mutation
-- `useUpdateMedication()` -- update mutation (discontinue = set is_active false + end_date)
-- `useDeleteMedication()` -- delete mutation
+**Edit `src/pages/Admin.tsx`:**
+- Add a "Roadmap" tab to the existing TabsList
+- Render a 4-column Kanban layout: Backlog | Planned | In Progress | Shipped
+- Each card shows title, description snippet, category badge
+- Status change via a dropdown on each card (move between columns)
+- "Add Item" button to create new roadmap items (inline form or sheet)
+- Edit title/description inline
+- Delete option on each card
 
-**Updated files:**
-- `src/pages/Medications.tsx` -- Wire to real data via hooks
-- `src/components/medications/AddMedicationSheet.tsx` -- Persist to database on submit
+**Seeded Roadmap Items:**
 
----
-
-### Part 2: Fix 2 -- Persist Chat History
-
-**Database migration:**
-- Create `chat_messages` table: id, care_circle_id, sender_id, sender_name, content, role ('user' | 'assistant'), metadata (jsonb), created_at
-- RLS: circle members can SELECT and INSERT
-
-**New file: `src/hooks/useChatHistory.ts`**
-- `useChatHistory(careCircleId)` -- fetch last 50 messages
-- `useSaveChatMessage()` -- insert mutation
-
-**Updated: `src/pages/Chat.tsx`**
-- Load last 50 messages on mount, display after welcome message
-- Save both user and AI messages to database after each exchange
-
----
-
-### Part 2: Fix 3 -- Dynamic AI Context
-
-**Updated: `supabase/functions/circle-chat/index.ts`**
-- Accept `careCircleId` in request body
-- Query real data: care_recipients, medications, providers, appointments, health_readings, care_circle_members
-- Build system prompt dynamically (AI still says "You are Circle, a warm and knowledgeable AI assistant...")
-- Fallback prompt if no care recipient exists yet
-
-**Updated: `src/pages/Chat.tsx`**
-- Pass `careCircleId` when invoking `circle-chat`
+| # | Title | Status | Category |
+|---|-------|--------|----------|
+| 1 | Push notifications and reminders | planned | Notifications |
+| 2 | Google Calendar sync | planned | Integrations |
+| 3 | SMS family invites | planned | Family |
+| 4 | Document camera scan (OCR) | planned | Documents |
+| 5 | Export care report as PDF | planned | Documents |
+| 6 | Medication refill alerts | planned | Medications |
+| 7 | Fax to doctor's office | planned | Integrations |
+| 8 | Medication interaction checker | planned | AI |
+| 9 | Telehealth appointment links | planned | Appointments |
+| 10 | Voice notes in chat | backlog | Chat |
+| 11 | Apple Watch integration | backlog | Health |
+| 12 | Caregiver shift scheduling | backlog | Family |
+| 13 | Insurance claims tracker | backlog | Documents |
+| 14 | Symptom diary with photo | backlog | Health |
+| 15 | Multi-language support | backlog | Accessibility |
 
 ---
 
-### Summary
+### Technical Summary
 
-| Change | Scope |
-|--------|-------|
-| App name: CareCircle to CareThread | 17+ files |
-| AI name: Circle | **No change** (stays Circle) |
-| Contact emails | `@thecarethread.com` |
-| Access code | `carethread2025` |
-| New table: `medications` | Full CRUD + RLS |
-| New table: `chat_messages` | Persistence + RLS |
-| Edge function: dynamic context | Real DB data replaces hardcoded demo |
-| Database table names | **No change** |
+| Action | File / Resource |
+|--------|----------------|
+| **Migrate** | Create `notification_preferences` table + RLS |
+| **Migrate** | Create `roadmap_items` table + RLS + seed data |
+| **Edit** | `src/pages/Documents.tsx` -- real DB data, signed URLs, delete |
+| **Edit** | `src/pages/Appointments.tsx` -- volunteer button, past section, summary trigger |
+| **Edit** | `src/pages/Doctors.tsx` -- edit/delete actions on providers |
+| **Edit** | `src/pages/Settings.tsx` -- persist notification toggles |
+| **Edit** | `src/pages/Admin.tsx` -- add Roadmap Kanban tab |
+| **Create** | `src/components/appointments/VisitSummarySheet.tsx` |
+| **Create** | `src/components/doctors/EditProviderSheet.tsx` |
 
