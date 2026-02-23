@@ -176,41 +176,39 @@ export function RoadmapKanban() {
                     <CardContent className="p-3 space-y-2">
                       <p className="text-sm font-medium text-foreground leading-tight">{item.title}</p>
                       {item.description && (
-                        <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>
+                        <p className="text-xs text-muted-foreground">{item.description}</p>
                       )}
-                      <div className="flex items-center justify-between">
-                        {item.category && (
-                          <Badge variant="outline" className={cn("text-[10px]", categoryColors[item.category] || "")}>
-                            {item.category}
-                          </Badge>
-                        )}
-                        <div className="flex items-center gap-1 ml-auto">
-                          <Select value={item.status} onValueChange={(v) => handleStatusChange(item.id, v)}>
-                            <SelectTrigger className="h-6 text-[10px] w-auto border-none shadow-none px-1">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {columns.map(c => <SelectItem key={c.key} value={c.key} className="text-xs">{c.label}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-destructive">
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete roadmap item?</AlertDialogTitle>
-                                <AlertDialogDescription>Remove "{item.title}" from the roadmap.</AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDelete(item.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
+                      {item.category && (
+                        <Badge variant="outline" className={cn("text-[10px]", categoryColors[item.category] || "")}>
+                          {item.category}
+                        </Badge>
+                      )}
+                      <div className="flex items-center gap-2 pt-1 border-t border-border">
+                        <Select value={item.status} onValueChange={(v) => handleStatusChange(item.id, v)}>
+                          <SelectTrigger className="h-7 text-xs flex-1">
+                            <SelectValue placeholder="Move to..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {columns.map(c => <SelectItem key={c.key} value={c.key} className="text-xs">{c.label}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive flex-shrink-0">
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete roadmap item?</AlertDialogTitle>
+                              <AlertDialogDescription>Remove "{item.title}" from the roadmap.</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDelete(item.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </CardContent>
                   </Card>
