@@ -11,3 +11,9 @@ verify_jwt = false
 
 [functions.validate-access-code]
 verify_jwt = false
+
+[functions.check-interactions]
+verify_jwt = false
+
+[functions.send-fax]
+verify_jwt = false

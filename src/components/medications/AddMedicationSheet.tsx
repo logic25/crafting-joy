@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from "react";
-import { Plus, Camera, X, Loader2, CheckCircle2 } from "lucide-react";
+import { Plus, Camera, X, Loader2, CheckCircle2, AlertTriangle, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { useAddMedication } from "@/hooks/useMedications";
+import { useAddMedication, useMedications } from "@/hooks/useMedications";
 import { useCareCircle } from "@/hooks/useCareCircle";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -36,16 +36,21 @@ export function AddMedicationSheet() {
   const [scanning, setScanning] = useState(false);
   const [scanSuccess, setScanSuccess] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [checkingInteractions, setCheckingInteractions] = useState(false);
+  const [interactionResult, setInteractionResult] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const addMed = useAddMedication();
   const { data: careCircleData } = useCareCircle();
   const { user } = useAuth();
+  const { data: existingMeds = [] } = useMedications(careCircleData?.careCircleId);
 
   const resetForm = useCallback(() => {
     setForm(EMPTY_FORM);
     setScanning(false);
     setScanSuccess(false);
     setPreviewUrl(null);
+    setInteractionResult(null);
+    setCheckingInteractions(false);
   }, []);
 
   const handleOpenChange = (nextOpen: boolean) => {
@@ -96,6 +101,27 @@ export function AddMedicationSheet() {
       toast.error("Couldn't read the label. Try a clearer photo or enter details manually.");
     } finally {
       setScanning(false);
+    }
+  };
+
+  const checkInteractions = async () => {
+    if (!form.name.trim() || existingMeds.length === 0) return;
+    setCheckingInteractions(true);
+    setInteractionResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("check-interactions", {
+        body: {
+          newMedication: `${form.name}${form.dosage ? ` ${form.dosage}` : ""}`,
+          existingMedications: existingMeds.filter(m => m.is_active).map(m => ({ name: m.name, dosage: m.dosage })),
+        },
+      });
+      if (error) throw error;
+      setInteractionResult(data);
+    } catch (err) {
+      console.error("Interaction check error:", err);
+      toast.error("Couldn't check interactions. You can still add the medication.");
+    } finally {
+      setCheckingInteractions(false);
     }
   };
 
@@ -243,6 +269,67 @@ export function AddMedicationSheet() {
             </div>
           </div>
         </div>
+
+        {/* Interaction Check */}
+        {existingMeds.length > 0 && form.name.trim() && (
+          <div className="mt-4 space-y-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={checkInteractions}
+              disabled={checkingInteractions}
+              className="w-full gap-2"
+            >
+              {checkingInteractions ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shield className="h-4 w-4" />}
+              Check Drug Interactions
+            </Button>
+
+            {interactionResult && (
+              <div className={cn(
+                "rounded-lg p-3 text-sm",
+                interactionResult.safe
+                  ? "bg-emerald-500/10 border border-emerald-500/25"
+                  : "bg-destructive/10 border border-destructive/25"
+              )}>
+                {interactionResult.safe ? (
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium text-emerald-700">No significant interactions found</p>
+                      <p className="text-xs text-muted-foreground mt-1">{interactionResult.summary}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium text-destructive">Potential interactions found</p>
+                        <p className="text-xs text-muted-foreground mt-1">{interactionResult.summary}</p>
+                      </div>
+                    </div>
+                    {interactionResult.interactions?.map((ix: any, i: number) => (
+                      <div key={i} className="bg-background/50 rounded p-2 text-xs space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold">{ix.drug1} ↔ {ix.drug2}</span>
+                          <span className={cn(
+                            "px-1.5 py-0.5 rounded text-[10px] font-medium uppercase",
+                            ix.severity === "severe" && "bg-destructive/20 text-destructive",
+                            ix.severity === "moderate" && "bg-warning/20 text-warning",
+                            ix.severity === "mild" && "bg-muted text-muted-foreground"
+                          )}>{ix.severity}</span>
+                        </div>
+                        <p className="text-muted-foreground">{ix.description}</p>
+                        <p className="font-medium">→ {ix.action}</p>
+                      </div>
+                    ))}
+                    <p className="text-[10px] text-muted-foreground italic">⚕️ For awareness only — consult the prescribing doctor with any concerns.</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="mt-4 pb-4">
           <Button onClick={handleSubmit} disabled={addMed.isPending} className="w-full gradient-primary">

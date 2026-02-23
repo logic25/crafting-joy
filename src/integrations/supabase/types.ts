@@ -58,6 +58,7 @@ export type Database = {
           purpose: string
           questions_to_ask: string[] | null
           status: string
+          telehealth_url: string | null
           type: string
           updated_at: string
           visit_summary: Json | null
@@ -81,6 +82,7 @@ export type Database = {
           purpose: string
           questions_to_ask?: string[] | null
           status?: string
+          telehealth_url?: string | null
           type?: string
           updated_at?: string
           visit_summary?: Json | null
@@ -104,6 +106,7 @@ export type Database = {
           purpose?: string
           questions_to_ask?: string[] | null
           status?: string
+          telehealth_url?: string | null
           type?: string
           updated_at?: string
           visit_summary?: Json | null
