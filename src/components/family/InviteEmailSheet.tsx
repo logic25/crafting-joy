@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Copy, Check, Mail, Plus, X } from "lucide-react";
+import { Copy, Check, Mail, Plus, X, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -71,6 +72,7 @@ export function InviteEmailSheet() {
   const [accessCode, setAccessCode] = useState("");
   const [emails, setEmails] = useState<string[]>([""]);
   const [copied, setCopied] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   useEffect(() => {
     const fetchCode = async () => {
@@ -120,6 +122,8 @@ export function InviteEmailSheet() {
     }
   };
 
+  const emailText = buildEmailText(accessCode);
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -128,15 +132,15 @@ export function InviteEmailSheet() {
           Send Invite
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Invite Family Members</DialogTitle>
           <DialogDescription>
-            Add your siblings' email addresses and we'll open your email app with the invite ready to send.
+            Add email addresses and we'll open your email app with the invite ready to send.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 mt-2">
+        <div className="space-y-4 mt-2 flex-1 overflow-hidden flex flex-col">
           {/* Email inputs */}
           <div className="space-y-2">
             <Label>Email Addresses</Label>
@@ -146,7 +150,7 @@ export function InviteEmailSheet() {
                   type="email"
                   value={email}
                   onChange={(e) => updateEmail(i, e.target.value)}
-                  placeholder={i === 0 ? "sister@email.com" : "another@email.com"}
+                  placeholder={i === 0 ? "brother@email.com" : "sibling@email.com"}
                   className="flex-1"
                 />
                 {emails.length > 1 && (
@@ -169,8 +173,28 @@ export function InviteEmailSheet() {
             <p className="font-mono font-semibold text-foreground">{accessCode || "Loading..."}</p>
           </div>
 
+          {/* Message preview toggle */}
+          <div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground gap-1.5 px-0 hover:text-foreground"
+              onClick={() => setShowPreview(!showPreview)}
+            >
+              {showPreview ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+              {showPreview ? "Hide message preview" : "Preview invite message"}
+            </Button>
+            {showPreview && (
+              <ScrollArea className="mt-2 h-48 rounded-lg border border-border bg-muted/20 p-4">
+                <pre className="text-xs text-foreground whitespace-pre-wrap font-sans leading-relaxed">
+                  {emailText}
+                </pre>
+              </ScrollArea>
+            )}
+          </div>
+
           {/* Actions */}
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2 pt-1">
             <Button className="w-full gap-2" onClick={handleSendEmail} disabled={validEmails.length === 0}>
               <Mail className="h-4 w-4" />
               Open Email App{validEmails.length > 0 ? ` (${validEmails.length})` : ""}
