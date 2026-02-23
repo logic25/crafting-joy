@@ -42,7 +42,7 @@ const Install = () => {
             <Smartphone className="h-8 w-8 text-primary" />
           </div>
           <h1 className="text-2xl font-bold text-foreground">Already Installed!</h1>
-          <p className="text-muted-foreground">CareCircle is on your home screen. You're all set.</p>
+          <p className="text-muted-foreground">CareThread is on your home screen. You're all set.</p>
         </div>
       </div>
     );
@@ -55,8 +55,8 @@ const Install = () => {
           <Download className="h-10 w-10 text-primary" />
         </div>
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold text-foreground">Install CareCircle</h1>
-          <p className="text-muted-foreground">Add CareCircle to your home screen for quick access — works just like a native app.</p>
+          <h1 className="text-2xl font-bold text-foreground">Install CareThread</h1>
+          <p className="text-muted-foreground">Add CareThread to your home screen for quick access — works just like a native app.</p>
         </div>
 
         {deferredPrompt ? (

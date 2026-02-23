@@ -11,14 +11,14 @@ const Terms = () => {
           <section className="space-y-2">
             <h2 className="text-lg font-semibold text-foreground">Acceptance</h2>
             <p className="text-sm text-muted-foreground">
-              By using CareCircle, you agree to these terms. If you don't agree, please don't use the service.
+              By using CareThread, you agree to these terms. If you don't agree, please don't use the service.
             </p>
           </section>
 
           <section className="space-y-2">
             <h2 className="text-lg font-semibold text-foreground">What CareCircle Is</h2>
             <p className="text-sm text-muted-foreground">
-              CareCircle is a family coordination tool for caregiving. It is <strong>not</strong> a medical device, does not provide medical advice, and should not be used as a substitute for professional healthcare. AI-generated insights are for informational purposes only.
+              CareThread is a family coordination tool for caregiving. It is <strong>not</strong> a medical device, does not provide medical advice, and should not be used as a substitute for professional healthcare. AI-generated insights are for informational purposes only.
             </p>
           </section>
 
@@ -39,14 +39,14 @@ const Terms = () => {
           <section className="space-y-2">
             <h2 className="text-lg font-semibold text-foreground">Limitation of Liability</h2>
             <p className="text-sm text-muted-foreground">
-              CareCircle is provided "as is." We are not liable for any health outcomes based on information in the app. Always consult healthcare professionals for medical decisions.
+              CareThread is provided "as is." We are not liable for any health outcomes based on information in the app. Always consult healthcare professionals for medical decisions.
             </p>
           </section>
 
           <section className="space-y-2">
             <h2 className="text-lg font-semibold text-foreground">Contact</h2>
             <p className="text-sm text-muted-foreground">
-              Questions about these terms? Contact us at legal@carecircle.app
+              Questions about these terms? Contact us at legal@thecarethread.com
             </p>
           </section>
         </div>

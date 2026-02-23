@@ -11,14 +11,14 @@ const Privacy = () => {
           <section className="space-y-2">
             <h2 className="text-lg font-semibold text-foreground">What We Collect</h2>
             <p className="text-sm text-muted-foreground">
-              CareCircle collects information you voluntarily provide about yourself and your care recipient, including health vitals, medications, appointments, emergency contacts, and uploaded documents. We also collect your email address and name for authentication.
+              CareThread collects information you voluntarily provide about yourself and your care recipient, including health vitals, medications, appointments, emergency contacts, and uploaded documents. We also collect your email address and name for authentication.
             </p>
           </section>
 
           <section className="space-y-2">
             <h2 className="text-lg font-semibold text-foreground">How We Use It</h2>
             <p className="text-sm text-muted-foreground">
-              Your data is used solely to provide the CareCircle service — coordinating care within your family circle. We do not sell, share, or monetize your health information. AI features analyze your data only to provide health insights within your circle.
+              Your data is used solely to provide the CareThread service — coordinating care within your family circle. We do not sell, share, or monetize your health information. AI features analyze your data only to provide health insights within your circle.
             </p>
           </section>
 
@@ -46,7 +46,7 @@ const Privacy = () => {
           <section className="space-y-2">
             <h2 className="text-lg font-semibold text-foreground">Contact</h2>
             <p className="text-sm text-muted-foreground">
-              For privacy questions, contact us at privacy@carecircle.app
+              For privacy questions, contact us at privacy@thecarethread.com
             </p>
           </section>
         </div>

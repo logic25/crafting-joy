@@ -68,7 +68,7 @@ export function AppLayout({ children, hideNav }: AppLayoutProps) {
               <div className="w-5 h-5 rounded-full gradient-primary" />
             </div>
             <div>
-              <h1 className="font-semibold text-foreground text-sm leading-tight">CareCircle</h1>
+              <h1 className="font-semibold text-foreground text-sm leading-tight">CareThread</h1>
               <p className="text-[11px] text-muted-foreground leading-tight">Caring for Mom</p>
             </div>
           </Link>

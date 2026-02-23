@@ -1,4 +1,4 @@
-// Core data types for CareCircle
+// Core data types for CareThread
 
 export interface CareRecipient {
   id: string;

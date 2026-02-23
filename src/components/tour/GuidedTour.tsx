@@ -3,7 +3,7 @@ import { MessageCircle, LayoutDashboard, Heart, AlertCircle, Users, X, ArrowRigh
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const TOUR_KEY = "carecircle_tour_completed";
+const TOUR_KEY = "carethread_tour_completed";
 
 interface TourStep {
   icon: React.ElementType;
