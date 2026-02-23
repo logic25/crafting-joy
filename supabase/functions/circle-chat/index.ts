@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,7 +17,6 @@ const MODELS = {
 function classifyMessage(message: string): { model: string; tier: string } {
   const lower = message.toLowerCase();
 
-  // Pro: reasoning, cross-correlation, "why", medication interactions
   const proPatterns = [
     /\bwhy\b/, /\bcould\s+\w+\s+cause\b/, /\bcorrelat/, /\binteraction\b/,
     /\bside\s*effect/, /\bmedication.*(?:caus|affect|impact)/,
@@ -28,7 +28,6 @@ function classifyMessage(message: string): { model: string; tier: string } {
     return { model: MODELS.pro, tier: "pro" };
   }
 
-  // Lite: factual lookups
   const litePatterns = [
     /\bpharmacy\b/, /\bdoctor\b.*\b(?:name|number|phone|contact)\b/,
     /\ballerg/, /\bmedication\s*list\b/, /\bwhat\s+(?:meds|medications)\b/,
@@ -39,8 +38,13 @@ function classifyMessage(message: string): { model: string; tier: string } {
     return { model: MODELS.lite, tier: "lite" };
   }
 
-  // Standard: everything else (trends, general questions)
   return { model: MODELS.standard, tier: "standard" };
+}
+
+// ── Detect /feedback trigger ─────────────────────────────────────────
+function extractFeedback(message: string): string | null {
+  const match = message.match(/\/feedback\s+(.+)/is);
+  return match ? match[1].trim() : null;
 }
 
 const SYSTEM_PROMPT = [
@@ -74,17 +78,92 @@ const SYSTEM_PROMPT = [
   "Your personality: Warm, caring, never condescending. Use first person like 'Let me check Mom\\'s records'. Always defer medical judgment to doctors. Keep responses concise. Use emoji sparingly.",
 ].join("\n");
 
+const FEEDBACK_SYSTEM_PROMPT = [
+  "You are Circle, the AI assistant in a family caregiving app called CareCircle.",
+  "A family member just submitted feedback or an idea using the /feedback command.",
+  "Your job is to 'stress test' the idea by:",
+  "1. Briefly acknowledging the idea warmly",
+  "2. Evaluating its feasibility within the CareCircle app",
+  "3. Playing devil's advocate — what could go wrong? What edge cases exist?",
+  "4. Suggesting how the idea could be improved or refined",
+  "5. Giving an overall verdict: 👍 Great idea, 🤔 Needs refinement, or ⚠️ Potential issues",
+  "",
+  "Keep your response concise (under 200 words). Be constructive, not dismissive.",
+  "End with: '✅ I've logged this feedback for Manny to review.'",
+].join("\n");
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { messages } = await req.json();
+    const { messages, feedbackMode, feedbackText, userName, userId, careCircleId } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    // Classify the last user message to pick the right model
+    // ── Feedback mode ──────────────────────────────────────────────
+    if (feedbackMode && feedbackText) {
+      console.log(`[feedback] From ${userName}: "${feedbackText.slice(0, 80)}"`);
+
+      // Get AI stress-test analysis
+      const aiResponse = await fetch(
+        "https://ai.gateway.lovable.dev/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: MODELS.standard,
+            messages: [
+              { role: "system", content: FEEDBACK_SYSTEM_PROMPT },
+              { role: "user", content: `Feedback from ${userName}: ${feedbackText}` },
+            ],
+          }),
+        }
+      );
+
+      if (!aiResponse.ok) {
+        const errorText = await aiResponse.text();
+        console.error("AI gateway error on feedback:", aiResponse.status, errorText);
+        return new Response(
+          JSON.stringify({ error: "AI gateway error" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const aiData = await aiResponse.json();
+      const analysis = aiData.choices?.[0]?.message?.content || "I've logged your feedback.";
+
+      // Log to database
+      try {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+        const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        const supabaseAdmin = createClient(supabaseUrl, supabaseKey);
+
+        await supabaseAdmin.from("feedback").insert({
+          user_id: userId || "anonymous",
+          user_name: userName || "Unknown",
+          care_circle_id: careCircleId || null,
+          original_message: feedbackText,
+          ai_analysis: analysis,
+          status: "new",
+        });
+        console.log("[feedback] Logged to database");
+      } catch (dbErr) {
+        console.error("[feedback] DB insert error:", dbErr);
+        // Don't fail the response — still return the AI analysis
+      }
+
+      return new Response(
+        JSON.stringify({ content: analysis }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ── Normal chat mode ───────────────────────────────────────────
     const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
     const { model, tier } = lastUserMsg
       ? classifyMessage(lastUserMsg.content)

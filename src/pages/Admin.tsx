@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
+import ReactMarkdown from "react-markdown";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, Heart, Activity, Shield, Search, Brain, Zap, AlertTriangle as AlertTriangleIcon, TrendingUp, DollarSign, Key, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Users, Heart, Activity, Shield, Search, Brain, Zap, AlertTriangle as AlertTriangleIcon, TrendingUp, DollarSign, Key, Eye, EyeOff, Loader2, MessageSquare, CheckCircle, XCircle, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -89,6 +90,17 @@ const modelShortName = (model: string | null): string => {
   return model.split("/").pop() || model;
 };
 
+interface FeedbackItem {
+  id: string;
+  user_name: string;
+  original_message: string;
+  ai_analysis: string | null;
+  status: string;
+  admin_notes: string | null;
+  created_at: string;
+  care_circle_id: string | null;
+}
+
 export default function Admin() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [circles, setCircles] = useState<Circle[]>([]);
@@ -96,6 +108,7 @@ export default function Admin() {
   const [recipients, setRecipients] = useState<CareRecipient[]>([]);
   const [healthAlerts, setHealthAlerts] = useState<HealthAlert[]>([]);
   const [healthReadings, setHealthReadings] = useState<HealthReading[]>([]);
+  const [feedbackItems, setFeedbackItems] = useState<FeedbackItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [accessCode, setAccessCode] = useState("");
@@ -106,7 +119,7 @@ export default function Admin() {
 
   useEffect(() => {
     const fetchAll = async () => {
-      const [profilesRes, circlesRes, membersRes, recipientsRes, alertsRes, readingsRes, settingsRes] = await Promise.all([
+      const [profilesRes, circlesRes, membersRes, recipientsRes, alertsRes, readingsRes, settingsRes, feedbackRes] = await Promise.all([
         supabase.from("profiles").select("*"),
         supabase.from("care_circles").select("*"),
         supabase.from("care_circle_members").select("*"),
@@ -114,6 +127,7 @@ export default function Admin() {
         supabase.from("health_alerts").select("*").order("created_at", { ascending: false }).limit(200),
         supabase.from("health_readings").select("id, care_circle_id, type, created_at").order("created_at", { ascending: false }).limit(200),
         supabase.from("app_settings" as any).select("value").eq("key", "access_code").single(),
+        supabase.from("feedback" as any).select("*").order("created_at", { ascending: false }).limit(100),
       ]);
       setProfiles(profilesRes.data || []);
       setCircles(circlesRes.data || []);
@@ -121,6 +135,7 @@ export default function Admin() {
       setRecipients(recipientsRes.data || []);
       setHealthAlerts(alertsRes.data || []);
       setHealthReadings(readingsRes.data || []);
+      setFeedbackItems((feedbackRes.data as any) || []);
       if (settingsRes.data) setAccessCode((settingsRes.data as any).value || "");
       setLoading(false);
     };
@@ -320,6 +335,14 @@ export default function Admin() {
           <TabsList>
             <TabsTrigger value="ai-usage">AI Usage</TabsTrigger>
             <TabsTrigger value="models">Model Routing</TabsTrigger>
+            <TabsTrigger value="feedback" className="relative">
+              Feedback
+              {feedbackItems.filter(f => f.status === "new").length > 0 && (
+                <span className="ml-1.5 inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">
+                  {feedbackItems.filter(f => f.status === "new").length}
+                </span>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="circles">Care Circles</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
@@ -679,6 +702,95 @@ export default function Admin() {
             })}
             {circles.length === 0 && (
               <p className="text-center text-muted-foreground py-8">No circles yet</p>
+            )}
+          </TabsContent>
+
+          {/* Feedback Tab */}
+          <TabsContent value="feedback" className="space-y-4">
+            {feedbackItems.length === 0 ? (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <MessageSquare className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                  <p className="text-sm text-muted-foreground">No feedback yet</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Family members can submit feedback by typing <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">/feedback</code> in the chat
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              feedbackItems.map((item) => (
+                <Card key={item.id}>
+                  <CardContent className="p-4 space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                          <span className="text-xs font-bold text-primary">{item.user_name[0]}</span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{item.user_name}</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {new Date(item.created_at).toLocaleDateString()} at {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "text-xs",
+                          item.status === "new" ? "bg-primary/10 text-primary border-primary/25" :
+                          item.status === "reviewed" ? "bg-warning/10 text-warning border-warning/25" :
+                          item.status === "planned" ? "bg-success/10 text-success border-success/25" :
+                          "bg-muted text-muted-foreground border-border"
+                        )}
+                      >
+                        {item.status === "new" && <Clock className="h-3 w-3 mr-1" />}
+                        {item.status === "planned" && <CheckCircle className="h-3 w-3 mr-1" />}
+                        {item.status === "declined" && <XCircle className="h-3 w-3 mr-1" />}
+                        {item.status}
+                      </Badge>
+                    </div>
+
+                    {/* Original feedback */}
+                    <div className="bg-muted/50 rounded-lg p-3">
+                      <p className="text-xs font-medium text-muted-foreground mb-1">Feedback</p>
+                      <p className="text-sm text-foreground">{item.original_message}</p>
+                    </div>
+
+                    {/* AI Analysis */}
+                    {item.ai_analysis && (
+                      <div className="bg-primary/5 rounded-lg p-3 border border-primary/10">
+                        <p className="text-xs font-medium text-primary mb-1">Circle's Stress Test</p>
+                        <div className="text-sm text-foreground prose prose-sm max-w-none [&>p]:mb-1 [&>p:last-child]:mb-0">
+                          <ReactMarkdown>{item.ai_analysis}</ReactMarkdown>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Status actions */}
+                    <div className="flex gap-2 pt-1">
+                      {["new", "reviewed", "planned", "declined"].map((s) => (
+                        <Button
+                          key={s}
+                          variant={item.status === s ? "default" : "outline"}
+                          size="sm"
+                          className="text-xs capitalize h-7"
+                          onClick={async () => {
+                            const { error } = await supabase
+                              .from("feedback" as any)
+                              .update({ status: s } as any)
+                              .eq("id", item.id);
+                            if (!error) {
+                              setFeedbackItems(prev => prev.map(f => f.id === item.id ? { ...f, status: s } : f));
+                            }
+                          }}
+                        >
+                          {s}
+                        </Button>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
             )}
           </TabsContent>
 
