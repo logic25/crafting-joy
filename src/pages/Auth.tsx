@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Heart, ArrowRight, Loader2 } from "lucide-react";
+import { Heart, ArrowRight, Loader2, Eye, EyeOff } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -17,6 +17,8 @@ const Auth = () => {
   const [lastName, setLastName] = useState("");
   const [accessCode, setAccessCode] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [forgotMode, setForgotMode] = useState(false);
   const { toast } = useToast();
   const { user, loading: authLoading, hasCircle } = useAuth();
 
@@ -29,11 +31,17 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      if (isLogin) {
+      if (forgotMode) {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (error) throw error;
+        toast({ title: "Check your email", description: "We sent you a password reset link." });
+        setForgotMode(false);
+      } else if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       } else {
-        // Validate access code first
         const { data: codeResult, error: codeError } = await supabase.functions.invoke(
           "validate-access-code",
           { body: { code: accessCode } }
@@ -77,7 +85,7 @@ const Auth = () => {
           </div>
           <h1 className="text-2xl font-bold text-foreground">CareCircle</h1>
           <p className="text-muted-foreground text-sm">
-            {isLogin ? "Welcome back" : "Coordinate care, together"}
+            {forgotMode ? "Enter your email to reset password" : isLogin ? "Welcome back" : "Coordinate care, together"}
           </p>
         </div>
 
@@ -121,21 +129,41 @@ const Auth = () => {
             />
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="password" className="text-xs">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-              minLength={6}
-              className="h-11"
-            />
-          </div>
+          {!forgotMode && (
+            <div className="space-y-1.5">
+              <Label htmlFor="password" className="text-xs">Password</Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  minLength={6}
+                  className="h-11 pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {isLogin && (
+                <button
+                  type="button"
+                  onClick={() => setForgotMode(true)}
+                  className="text-[11px] text-primary hover:underline"
+                >
+                  Forgot password?
+                </button>
+              )}
+            </div>
+          )}
 
-          {!isLogin && (
+          {!isLogin && !forgotMode && (
             <div className="space-y-1.5">
               <Label htmlFor="accessCode" className="text-xs">Access Code</Label>
               <Input
@@ -159,7 +187,7 @@ const Auth = () => {
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <>
-                {isLogin ? "Sign in" : "Create account"}
+                {forgotMode ? "Send reset link" : isLogin ? "Sign in" : "Create account"}
                 <ArrowRight className="h-4 w-4" />
               </>
             )}
@@ -200,13 +228,24 @@ const Auth = () => {
         </Button>
 
         <p className="text-center text-sm text-muted-foreground">
-          {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
-          <button
-            onClick={() => setIsLogin(!isLogin)}
-            className="text-primary font-medium hover:underline"
-          >
-            {isLogin ? "Sign up" : "Sign in"}
-          </button>
+          {forgotMode ? (
+            <button
+              onClick={() => setForgotMode(false)}
+              className="text-primary font-medium hover:underline"
+            >
+              Back to sign in
+            </button>
+          ) : (
+            <>
+              {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
+              <button
+                onClick={() => setIsLogin(!isLogin)}
+                className="text-primary font-medium hover:underline"
+              >
+                {isLogin ? "Sign up" : "Sign in"}
+              </button>
+            </>
+          )}
         </p>
       </div>
     </div>
