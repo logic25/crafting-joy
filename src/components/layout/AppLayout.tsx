@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsSuperAdmin } from "@/hooks/useAppRole";
+import { GuidedTour } from "@/components/tour/GuidedTour";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -239,6 +240,9 @@ export function AppLayout({ children, hideNav }: AppLayoutProps) {
           </div>
         </nav>
       )}
+
+      {/* Guided Tour */}
+      <GuidedTour />
     </div>
   );
 }
