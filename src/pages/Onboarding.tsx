@@ -183,7 +183,7 @@ const Onboarding = () => {
                     id="recipientName"
                     value={recipientName}
                     onChange={(e) => setRecipientName(e.target.value)}
-                    placeholder="e.g. Maria"
+                    placeholder="e.g. Mom"
                     className="h-12 text-base"
                     autoFocus
                   />
