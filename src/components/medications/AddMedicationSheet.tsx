@@ -148,7 +148,7 @@ export function AddMedicationSheet() {
           <span className="hidden sm:inline">Add</span>
         </Button>
       </SheetTrigger>
-      <SheetContent side="bottom" className="h-auto max-h-[75vh] rounded-t-2xl overflow-y-auto">
+      <SheetContent side="bottom" className="h-auto max-h-[55vh] rounded-t-2xl overflow-y-auto">
         <SheetHeader className="mb-3">
           <SheetTitle className="text-base">Add Medication</SheetTitle>
         </SheetHeader>
