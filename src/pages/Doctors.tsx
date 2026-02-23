@@ -1,6 +1,7 @@
 import { Phone, MapPin, Clock, ChevronRight } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { providers } from "@/data/mockData";
+import { AddProviderSheet } from "@/components/doctors/AddProviderSheet";
 
 const Doctors = () => {
   const doctors = providers.filter((p) => p.type === "doctor");
@@ -9,9 +10,12 @@ const Doctors = () => {
   return (
     <AppLayout>
       <div className="space-y-5 pb-24 md:pb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Doctors & Providers</h1>
-          <p className="text-sm text-muted-foreground">Mom's care team contacts</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Doctors & Providers</h1>
+            <p className="text-sm text-muted-foreground">Mom's care team contacts</p>
+          </div>
+          <AddProviderSheet />
         </div>
 
         <div className="space-y-3">

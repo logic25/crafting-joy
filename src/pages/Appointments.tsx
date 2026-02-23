@@ -7,6 +7,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { appointments } from "@/data/mockData";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth, addMonths, subMonths } from "date-fns";
 import { cn } from "@/lib/utils";
+import { AddAppointmentSheet } from "@/components/appointments/AddAppointmentSheet";
 
 type ViewMode = "list" | "calendar";
 
@@ -36,10 +37,7 @@ const Appointments = () => {
             <h1 className="text-2xl font-bold text-foreground">Appointments</h1>
             <p className="text-sm text-muted-foreground">Manage Mom's upcoming visits</p>
           </div>
-          <Button className="gradient-primary gap-2 h-9">
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Add</span>
-          </Button>
+          <AddAppointmentSheet />
         </div>
 
         {/* View Toggle */}
