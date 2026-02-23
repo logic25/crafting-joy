@@ -86,7 +86,7 @@ export function FaxDocumentSheet({ providers }: FaxDocumentSheetProps) {
           <Send className="h-3.5 w-3.5" /> Fax
         </Button>
       </SheetTrigger>
-      <SheetContent side="bottom" className="h-auto max-h-[60vh] rounded-t-2xl overflow-y-auto">
+      <SheetContent side="bottom" className="h-auto max-h-[45vh] rounded-t-2xl overflow-y-auto px-4 pb-6 pt-4">
         <SheetHeader className="mb-4">
           <SheetTitle className="text-base">Fax to Doctor's Office</SheetTitle>
         </SheetHeader>
