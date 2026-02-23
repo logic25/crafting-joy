@@ -204,6 +204,53 @@ export type Database = {
           },
         ]
       }
+      feedback: {
+        Row: {
+          admin_notes: string | null
+          ai_analysis: string | null
+          care_circle_id: string | null
+          created_at: string
+          id: string
+          original_message: string
+          status: string
+          updated_at: string
+          user_id: string
+          user_name: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          ai_analysis?: string | null
+          care_circle_id?: string | null
+          created_at?: string
+          id?: string
+          original_message: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          user_name: string
+        }
+        Update: {
+          admin_notes?: string | null
+          ai_analysis?: string | null
+          care_circle_id?: string | null
+          created_at?: string
+          id?: string
+          original_message?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          user_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_care_circle_id_fkey"
+            columns: ["care_circle_id"]
+            isOneToOne: false
+            referencedRelation: "care_circles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       health_alerts: {
         Row: {
           acknowledged_by: string[] | null
