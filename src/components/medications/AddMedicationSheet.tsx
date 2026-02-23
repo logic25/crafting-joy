@@ -5,10 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { useAddMedication } from "@/hooks/useMedications";
+import { useCareCircle } from "@/hooks/useCareCircle";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface MedicationFormData {
   name: string;
@@ -21,38 +23,23 @@ interface MedicationFormData {
 }
 
 const EMPTY_FORM: MedicationFormData = {
-  name: "",
-  dosage: "",
-  frequency: "",
-  instructions: "",
-  purpose: "",
-  prescriber: "",
-  pharmacy: "",
+  name: "", dosage: "", frequency: "", instructions: "", purpose: "", prescriber: "", pharmacy: "",
 };
 
 const PURPOSE_OPTIONS = [
-  "Blood Pressure",
-  "Diabetes",
-  "Cholesterol",
-  "GERD",
-  "Pain",
-  "Heart",
-  "Thyroid",
-  "Mental Health",
-  "Other",
+  "Blood Pressure", "Diabetes", "Cholesterol", "GERD", "Pain", "Heart", "Thyroid", "Mental Health", "Other",
 ];
 
-interface AddMedicationSheetProps {
-  onAdd?: (medication: MedicationFormData) => void;
-}
-
-export function AddMedicationSheet({ onAdd }: AddMedicationSheetProps) {
+export function AddMedicationSheet() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<MedicationFormData>(EMPTY_FORM);
   const [scanning, setScanning] = useState(false);
   const [scanSuccess, setScanSuccess] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const addMed = useAddMedication();
+  const { data: careCircleData } = useCareCircle();
+  const { user } = useAuth();
 
   const resetForm = useCallback(() => {
     setForm(EMPTY_FORM);
@@ -69,15 +56,12 @@ export function AddMedicationSheet({ onAdd }: AddMedicationSheetProps) {
   const handleCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    // Show preview
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
     setScanning(true);
     setScanSuccess(false);
 
     try {
-      // Convert to base64
       const reader = new FileReader();
       const base64 = await new Promise<string>((resolve, reject) => {
         reader.onload = () => resolve(reader.result as string);
@@ -88,7 +72,6 @@ export function AddMedicationSheet({ onAdd }: AddMedicationSheetProps) {
       const { data, error } = await supabase.functions.invoke("extract-medication", {
         body: { image: base64 },
       });
-
       if (error) throw error;
 
       if (data?.medication) {
@@ -121,10 +104,36 @@ export function AddMedicationSheet({ onAdd }: AddMedicationSheetProps) {
       toast.error("Medication name is required");
       return;
     }
-    onAdd?.(form);
-    toast.success(`${form.name} added to medications`);
-    setOpen(false);
-    resetForm();
+    if (!careCircleData?.careCircleId || !careCircleData?.careRecipientId) {
+      toast.error("Care circle not set up yet");
+      return;
+    }
+
+    addMed.mutate(
+      {
+        care_circle_id: careCircleData.careCircleId,
+        care_recipient_id: careCircleData.careRecipientId,
+        name: form.name.trim(),
+        dosage: form.dosage || undefined,
+        frequency: form.frequency || undefined,
+        instructions: form.instructions || undefined,
+        purpose: form.purpose || undefined,
+        prescriber: form.prescriber || undefined,
+        pharmacy: form.pharmacy || undefined,
+        source: scanSuccess ? "label_scan" : "manual",
+      },
+      {
+        onSuccess: () => {
+          toast.success(`${form.name} added to medications`);
+          setOpen(false);
+          resetForm();
+        },
+        onError: (err) => {
+          toast.error("Failed to save medication");
+          console.error(err);
+        },
+      }
+    );
   };
 
   const updateField = (field: keyof MedicationFormData, value: string) => {
@@ -146,15 +155,7 @@ export function AddMedicationSheet({ onAdd }: AddMedicationSheetProps) {
 
         {/* Camera OCR Section */}
         <div className="mb-5">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={handleCapture}
-            className="hidden"
-          />
-
+          <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handleCapture} className="hidden" />
           {!previewUrl ? (
             <button
               onClick={() => fileInputRef.current?.click()}
@@ -183,11 +184,7 @@ export function AddMedicationSheet({ onAdd }: AddMedicationSheetProps) {
                 </div>
               )}
               <button
-                onClick={() => {
-                  setPreviewUrl(null);
-                  setScanSuccess(false);
-                  if (fileInputRef.current) fileInputRef.current.value = "";
-                }}
+                onClick={() => { setPreviewUrl(null); setScanSuccess(false); if (fileInputRef.current) fileInputRef.current.value = ""; }}
                 className="absolute top-2 left-2 bg-background/80 rounded-full p-1"
               >
                 <X className="h-4 w-4 text-foreground" />
@@ -208,38 +205,18 @@ export function AddMedicationSheet({ onAdd }: AddMedicationSheetProps) {
         <div className="space-y-3">
           <div>
             <Label htmlFor="med-name" className="text-xs">Medication Name *</Label>
-            <Input
-              id="med-name"
-              placeholder="e.g., Lisinopril"
-              value={form.name}
-              onChange={(e) => updateField("name", e.target.value)}
-              className={cn(scanSuccess && form.name && "border-success/50 bg-success/5")}
-            />
+            <Input id="med-name" placeholder="e.g., Lisinopril" value={form.name} onChange={(e) => updateField("name", e.target.value)} className={cn(scanSuccess && form.name && "border-success/50 bg-success/5")} />
           </div>
-
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label htmlFor="med-dosage" className="text-xs">Dosage</Label>
-              <Input
-                id="med-dosage"
-                placeholder="e.g., 10mg"
-                value={form.dosage}
-                onChange={(e) => updateField("dosage", e.target.value)}
-                className={cn(scanSuccess && form.dosage && "border-success/50 bg-success/5")}
-              />
+              <Input id="med-dosage" placeholder="e.g., 10mg" value={form.dosage} onChange={(e) => updateField("dosage", e.target.value)} className={cn(scanSuccess && form.dosage && "border-success/50 bg-success/5")} />
             </div>
             <div>
               <Label htmlFor="med-frequency" className="text-xs">Frequency</Label>
-              <Input
-                id="med-frequency"
-                placeholder="e.g., 1x daily"
-                value={form.frequency}
-                onChange={(e) => updateField("frequency", e.target.value)}
-                className={cn(scanSuccess && form.frequency && "border-success/50 bg-success/5")}
-              />
+              <Input id="med-frequency" placeholder="e.g., 1x daily" value={form.frequency} onChange={(e) => updateField("frequency", e.target.value)} className={cn(scanSuccess && form.frequency && "border-success/50 bg-success/5")} />
             </div>
           </div>
-
           <div>
             <Label htmlFor="med-purpose" className="text-xs">Purpose</Label>
             <Select value={form.purpose} onValueChange={(v) => updateField("purpose", v)}>
@@ -247,51 +224,29 @@ export function AddMedicationSheet({ onAdd }: AddMedicationSheetProps) {
                 <SelectValue placeholder="What is this for?" />
               </SelectTrigger>
               <SelectContent>
-                {PURPOSE_OPTIONS.map((p) => (
-                  <SelectItem key={p} value={p}>{p}</SelectItem>
-                ))}
+                {PURPOSE_OPTIONS.map((p) => (<SelectItem key={p} value={p}>{p}</SelectItem>))}
               </SelectContent>
             </Select>
           </div>
-
           <div>
             <Label htmlFor="med-instructions" className="text-xs">Instructions</Label>
-            <Input
-              id="med-instructions"
-              placeholder="e.g., Take with food"
-              value={form.instructions}
-              onChange={(e) => updateField("instructions", e.target.value)}
-              className={cn(scanSuccess && form.instructions && "border-success/50 bg-success/5")}
-            />
+            <Input id="med-instructions" placeholder="e.g., Take with food" value={form.instructions} onChange={(e) => updateField("instructions", e.target.value)} className={cn(scanSuccess && form.instructions && "border-success/50 bg-success/5")} />
           </div>
-
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label htmlFor="med-prescriber" className="text-xs">Prescriber</Label>
-              <Input
-                id="med-prescriber"
-                placeholder="e.g., Dr. Patel"
-                value={form.prescriber}
-                onChange={(e) => updateField("prescriber", e.target.value)}
-                className={cn(scanSuccess && form.prescriber && "border-success/50 bg-success/5")}
-              />
+              <Input id="med-prescriber" placeholder="e.g., Dr. Patel" value={form.prescriber} onChange={(e) => updateField("prescriber", e.target.value)} className={cn(scanSuccess && form.prescriber && "border-success/50 bg-success/5")} />
             </div>
             <div>
               <Label htmlFor="med-pharmacy" className="text-xs">Pharmacy</Label>
-              <Input
-                id="med-pharmacy"
-                placeholder="e.g., CVS"
-                value={form.pharmacy}
-                onChange={(e) => updateField("pharmacy", e.target.value)}
-                className={cn(scanSuccess && form.pharmacy && "border-success/50 bg-success/5")}
-              />
+              <Input id="med-pharmacy" placeholder="e.g., CVS" value={form.pharmacy} onChange={(e) => updateField("pharmacy", e.target.value)} className={cn(scanSuccess && form.pharmacy && "border-success/50 bg-success/5")} />
             </div>
           </div>
         </div>
 
-        {/* Submit */}
         <div className="mt-4 pb-4">
-          <Button onClick={handleSubmit} className="w-full gradient-primary">
+          <Button onClick={handleSubmit} disabled={addMed.isPending} className="w-full gradient-primary">
+            {addMed.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
             Add Medication
           </Button>
         </div>

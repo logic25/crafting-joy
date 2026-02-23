@@ -18,7 +18,7 @@ const APP_URL = window.location.origin;
 function buildEmailText(accessCode: string) {
   return `Hey!
 
-I set up an app called CareCircle so we can coordinate Mom's care in one place instead of scattered group texts. It tracks medications, appointments, vitals, and has an AI assistant named Circle you can ask questions about Mom's health.
+I set up an app called CareThread so we can coordinate Mom's care in one place instead of scattered group texts. It tracks medications, appointments, vitals, and has an AI assistant named Circle you can ask questions about Mom's health.
 
 ━━━━━━━━━━━━━━━━━━━━
 📲 GETTING STARTED (2 min)

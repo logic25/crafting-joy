@@ -83,7 +83,7 @@ const Auth = () => {
           <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center mx-auto shadow-elevated">
             <Heart className="h-8 w-8 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground">CareCircle</h1>
+          <h1 className="text-2xl font-bold text-foreground">CareThread</h1>
           <p className="text-muted-foreground text-sm">
             {forgotMode ? "Enter your email to reset password" : isLogin ? "Welcome back" : "Coordinate care, together"}
           </p>

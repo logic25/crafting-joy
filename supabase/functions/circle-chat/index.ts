@@ -40,39 +40,162 @@ function classifyMessage(message: string): { model: string; tier: string } {
   return { model: MODELS.standard, tier: "standard" };
 }
 
-const SYSTEM_PROMPT = [
-  "You are Circle, a warm and knowledgeable AI assistant embedded in a family caregiving group chat for Rosa Martinez (Mom).",
-  "",
-  "Mom's Medical Context:",
-  "- Name: Rosa Martinez, Age 73, DOB April 15 1952",
-  "- Conditions: Hypertension, Type 2 Diabetes, GERD, History of heart disease",
-  "- Allergies: Penicillin (rash), Sulfa drugs (anaphylaxis, SEVERE)",
-  "- Preferred Hospital: Elmhurst Hospital",
-  "- Preferred Pharmacy: CVS Queens Blvd",
-  "",
-  "Current Medications:",
-  "- Lisinopril 10mg, 1x daily morning, Blood Pressure (Dr. Fuzaylov)",
-  "- Jardiance 10mg, 1x daily morning with food, Diabetes (Dr. Patel)",
-  "- Omeprazole 20mg, 1x daily evening, GERD (Dr. Patel)",
-  "- Amlodipine 5mg, 1x daily morning, Blood Pressure (Dr. Fuzaylov)",
-  "",
-  "Doctors:",
-  "- Dr. Fuzaylov, Cardiology, (718) 897-0327",
-  "- Dr. Patel, Primary Care, (718) 555-0456",
-  "- Dr. Mehta, Gastroenterology, (718) 555-0789",
-  "",
-  "Recent BP (7-day): 132/85, 128/82, 135/88, 140/90, 130/84, 126/80, 138/87",
-  "Dr. Fuzaylov target: below 140/90",
-  "",
-  "Standing Instructions: Elevate bed to 35 degrees per MD. Reduce sodium intake.",
-  "",
-  "Family: Manny (Son, admin), Maria (Daughter), Jessica (Daughter)",
-  "",
-  "Your personality: Warm, caring, never condescending. Use first person like 'Let me check Mom\\'s records'. Always defer medical judgment to doctors. Keep responses concise. Use emoji sparingly.",
-].join("\n");
+// ── Dynamic system prompt builder ──────────────────────────────
+async function buildSystemPrompt(supabaseAdmin: any, careCircleId: string): Promise<string> {
+  const lines: string[] = [
+    "You are Circle, a warm and knowledgeable AI assistant embedded in a family caregiving group chat.",
+    "",
+  ];
+
+  // 1. Care recipient
+  const { data: recipients } = await supabaseAdmin
+    .from("care_recipients")
+    .select("*")
+    .eq("care_circle_id", careCircleId)
+    .limit(1);
+
+  const recipient = recipients?.[0];
+  if (!recipient) {
+    return [
+      "You are Circle, a warm AI assistant for family caregiving.",
+      "No care recipient has been set up yet — help the family get started by encouraging them to add their loved one's information in the app settings.",
+      "Your personality: Warm, caring, never condescending. Keep responses concise. Use emoji sparingly.",
+    ].join("\n");
+  }
+
+  const age = recipient.date_of_birth
+    ? Math.floor((Date.now() - new Date(recipient.date_of_birth).getTime()) / (365.25 * 86400000))
+    : null;
+
+  lines.push(`${recipient.name}'s Medical Context:`);
+  lines.push(`- Name: ${recipient.name}${age ? `, Age ${age}` : ""}${recipient.date_of_birth ? `, DOB ${recipient.date_of_birth}` : ""}`);
+
+  if (recipient.medical_conditions?.length) {
+    lines.push(`- Conditions: ${recipient.medical_conditions.join(", ")}`);
+  }
+
+  if (recipient.allergies && Array.isArray(recipient.allergies) && recipient.allergies.length) {
+    const allergyStrs = recipient.allergies.map((a: any) =>
+      typeof a === "string" ? a : `${a.name}${a.reaction ? ` (${a.reaction}${a.severity === "severe" ? ", SEVERE" : ""})` : ""}`
+    );
+    lines.push(`- Allergies: ${allergyStrs.join(", ")}`);
+  }
+
+  if (recipient.preferred_hospital) lines.push(`- Preferred Hospital: ${recipient.preferred_hospital}`);
+  if (recipient.preferred_pharmacy) lines.push(`- Preferred Pharmacy: ${recipient.preferred_pharmacy}`);
+
+  if (recipient.standing_instructions?.length) {
+    lines.push(`- Standing Instructions: ${recipient.standing_instructions.join("; ")}`);
+  }
+  lines.push("");
+
+  // 2. Active medications
+  const { data: meds } = await supabaseAdmin
+    .from("medications")
+    .select("name, dosage, frequency, purpose, prescriber, instructions")
+    .eq("care_circle_id", careCircleId)
+    .eq("is_active", true);
+
+  if (meds?.length) {
+    lines.push("Current Medications:");
+    for (const m of meds) {
+      const parts = [`${m.name}${m.dosage ? ` ${m.dosage}` : ""}`];
+      if (m.frequency) parts.push(m.frequency);
+      if (m.purpose) parts.push(m.purpose);
+      if (m.prescriber) parts.push(`(${m.prescriber})`);
+      if (m.instructions) parts.push(`— ${m.instructions}`);
+      lines.push(`- ${parts.join(", ")}`);
+    }
+    lines.push("");
+  }
+
+  // 3. Providers
+  const { data: providers } = await supabaseAdmin
+    .from("providers")
+    .select("name, specialty, phone")
+    .eq("care_circle_id", careCircleId);
+
+  if (providers?.length) {
+    lines.push("Doctors:");
+    for (const p of providers) {
+      lines.push(`- ${p.name}, ${p.specialty}${p.phone ? `, ${p.phone}` : ""}`);
+    }
+    lines.push("");
+  }
+
+  // 4. Upcoming appointments
+  const { data: appointments } = await supabaseAdmin
+    .from("appointments")
+    .select("provider_name, provider_specialty, purpose, date_time, location")
+    .eq("care_circle_id", careCircleId)
+    .gte("date_time", new Date().toISOString())
+    .order("date_time", { ascending: true })
+    .limit(5);
+
+  if (appointments?.length) {
+    lines.push("Upcoming Appointments:");
+    for (const a of appointments) {
+      const dt = new Date(a.date_time).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+      lines.push(`- ${dt}: ${a.provider_name}${a.provider_specialty ? ` (${a.provider_specialty})` : ""} — ${a.purpose}${a.location ? ` at ${a.location}` : ""}`);
+    }
+    lines.push("");
+  }
+
+  // 5. Recent health readings
+  const { data: readings } = await supabaseAdmin
+    .from("health_readings")
+    .select("type, value_primary, value_secondary, unit, created_at")
+    .eq("care_circle_id", careCircleId)
+    .order("created_at", { ascending: false })
+    .limit(14);
+
+  if (readings?.length) {
+    const grouped: Record<string, string[]> = {};
+    for (const r of readings) {
+      const label = r.type;
+      if (!grouped[label]) grouped[label] = [];
+      const val = r.value_secondary ? `${r.value_primary}/${r.value_secondary}` : `${r.value_primary}`;
+      grouped[label].push(val);
+    }
+    lines.push("Recent Health Readings:");
+    for (const [type, vals] of Object.entries(grouped)) {
+      lines.push(`- ${type}: ${vals.join(", ")}`);
+    }
+    lines.push("");
+  }
+
+  // 6. Family members
+  const { data: members } = await supabaseAdmin
+    .from("care_circle_members")
+    .select("role, user_id")
+    .eq("care_circle_id", careCircleId);
+
+  if (members?.length) {
+    const userIds = members.map((m: any) => m.user_id);
+    const { data: profiles } = await supabaseAdmin
+      .from("profiles")
+      .select("id, first_name, last_name")
+      .in("id", userIds);
+
+    if (profiles?.length) {
+      const profileMap = Object.fromEntries(profiles.map((p: any) => [p.id, p]));
+      lines.push("Family:");
+      for (const m of members) {
+        const p = profileMap[m.user_id];
+        const name = p ? `${p.first_name || ""} ${p.last_name || ""}`.trim() || "Unknown" : "Unknown";
+        lines.push(`- ${name} (${m.role})`);
+      }
+      lines.push("");
+    }
+  }
+
+  lines.push("Your personality: Warm, caring, never condescending. Use first person like 'Let me check the records'. Always defer medical judgment to doctors. Keep responses concise. Use emoji sparingly.");
+
+  return lines.join("\n");
+}
 
 const FEEDBACK_SYSTEM_PROMPT = [
-  "You are Circle, the AI assistant in a family caregiving app called CareCircle.",
+  "You are Circle, the AI assistant in a family caregiving app called CareThread.",
   "An admin wants you to stress-test a piece of feedback or idea submitted by a family member.",
   "Your job is to:",
   "1. Briefly acknowledge the idea",
@@ -94,15 +217,15 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAdmin = createClient(supabaseUrl, supabaseKey);
+
     // ── Feedback logging (just save, no AI) ────────────────────────
     if (body.feedbackMode && body.feedbackText) {
       console.log(`[feedback] From ${body.userName}: "${body.feedbackText.slice(0, 80)}"`);
 
       try {
-        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-        const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-        const supabaseAdmin = createClient(supabaseUrl, supabaseKey);
-
         await supabaseAdmin.from("feedback").insert({
           user_id: body.userId || "anonymous",
           user_name: body.userName || "Unknown",
@@ -161,13 +284,25 @@ serve(async (req) => {
     }
 
     // ── Normal chat mode ───────────────────────────────────────────
-    const { messages } = body;
+    const { messages, careCircleId } = body;
     const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
     const { model, tier } = lastUserMsg
       ? classifyMessage(lastUserMsg.content)
       : { model: MODELS.standard, tier: "standard" };
 
     console.log(`[chat-${tier}] Model: ${model} | Message: "${(lastUserMsg?.content || "").slice(0, 80)}"`);
+
+    // Build dynamic system prompt from real data
+    let systemPrompt: string;
+    if (careCircleId) {
+      systemPrompt = await buildSystemPrompt(supabaseAdmin, careCircleId);
+    } else {
+      systemPrompt = [
+        "You are Circle, a warm AI assistant for family caregiving.",
+        "No care circle context was provided. Help the user with general caregiving questions.",
+        "Your personality: Warm, caring, never condescending. Keep responses concise. Use emoji sparingly.",
+      ].join("\n");
+    }
 
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
@@ -180,7 +315,7 @@ serve(async (req) => {
         body: JSON.stringify({
           model,
           messages: [
-            { role: "system", content: SYSTEM_PROMPT },
+            { role: "system", content: systemPrompt },
             ...messages,
           ],
         }),

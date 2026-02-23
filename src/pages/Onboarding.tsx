@@ -87,7 +87,7 @@ const Onboarding = () => {
 
       // 4. Refresh circle status and navigate
       await refreshCircleStatus();
-      toast({ title: "Welcome to CareCircle! 🎉", description: `${circleName} is ready.` });
+      toast({ title: "Welcome to CareThread! 🎉", description: `${circleName} is ready.` });
       navigate("/");
     } catch (error: any) {
       console.error("Onboarding error:", error);
@@ -158,7 +158,7 @@ const Onboarding = () => {
                     id="circleName"
                     value={circleName}
                     onChange={(e) => setCircleName(e.target.value)}
-                    placeholder="e.g. Mom's Care Circle"
+                    placeholder="e.g. Mom's Care Thread"
                     className="h-12 text-base"
                     autoFocus
                   />
@@ -167,7 +167,7 @@ const Onboarding = () => {
                   <div className="flex items-start gap-2">
                     <Sparkles className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
                     <p>
-                      A Care Circle is your private space for coordinating care.
+                      A Care Thread is your private space for coordinating care.
                       Only people you invite can see it.
                     </p>
                   </div>

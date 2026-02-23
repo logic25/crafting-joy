@@ -291,6 +291,47 @@ export type Database = {
           },
         ]
       }
+      chat_messages: {
+        Row: {
+          care_circle_id: string
+          content: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          role: string
+          sender_id: string
+          sender_name: string
+        }
+        Insert: {
+          care_circle_id: string
+          content: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          role?: string
+          sender_id: string
+          sender_name: string
+        }
+        Update: {
+          care_circle_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          role?: string
+          sender_id?: string
+          sender_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_care_circle_id_fkey"
+            columns: ["care_circle_id"]
+            isOneToOne: false
+            referencedRelation: "care_circles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           care_circle_id: string
@@ -521,6 +562,90 @@ export type Database = {
             columns: ["care_circle_id"]
             isOneToOne: false
             referencedRelation: "care_circles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medications: {
+        Row: {
+          added_by: string
+          care_circle_id: string
+          care_recipient_id: string
+          created_at: string
+          dosage: string | null
+          end_date: string | null
+          frequency: string | null
+          id: string
+          instructions: string | null
+          is_active: boolean
+          name: string
+          notes: string | null
+          pharmacy: string | null
+          prescriber: string | null
+          purpose: string | null
+          quantity: string | null
+          refills_remaining: number | null
+          source: string
+          start_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          added_by: string
+          care_circle_id: string
+          care_recipient_id: string
+          created_at?: string
+          dosage?: string | null
+          end_date?: string | null
+          frequency?: string | null
+          id?: string
+          instructions?: string | null
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          pharmacy?: string | null
+          prescriber?: string | null
+          purpose?: string | null
+          quantity?: string | null
+          refills_remaining?: number | null
+          source?: string
+          start_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          added_by?: string
+          care_circle_id?: string
+          care_recipient_id?: string
+          created_at?: string
+          dosage?: string | null
+          end_date?: string | null
+          frequency?: string | null
+          id?: string
+          instructions?: string | null
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          pharmacy?: string | null
+          prescriber?: string | null
+          purpose?: string | null
+          quantity?: string | null
+          refills_remaining?: number | null
+          source?: string
+          start_date?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medications_care_circle_id_fkey"
+            columns: ["care_circle_id"]
+            isOneToOne: false
+            referencedRelation: "care_circles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medications_care_recipient_id_fkey"
+            columns: ["care_recipient_id"]
+            isOneToOne: false
+            referencedRelation: "care_recipients"
             referencedColumns: ["id"]
           },
         ]

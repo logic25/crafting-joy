@@ -23,8 +23,8 @@ export default defineConfig(({ mode }) => ({
         navigateFallbackDenylist: [/^\/~oauth/],
       },
       manifest: {
-        name: "CareCircle",
-        short_name: "CareCircle",
+        name: "CareThread",
+        short_name: "CareThread",
         description: "Family caregiver coordination — track health, manage meds, stay connected.",
         theme_color: "#5B7B6A",
         background_color: "#FAF8F5",

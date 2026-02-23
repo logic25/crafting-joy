@@ -1,10 +1,10 @@
-# CareCircle
+# CareThread
 
 A family-centered caregiving coordination platform that answers the question: **"How's Mom?"**
 
 ## What It Does
 
-CareCircle is a mobile-first, chat-first app that helps families coordinate care for aging loved ones. At its core is **Circle AI** — a warm, knowledgeable assistant that knows Mom's medications, doctors, blood pressure trends, and appointments so the whole family stays informed.
+CareThread is a mobile-first, chat-first app that helps families coordinate care for aging loved ones. At its core is **Circle AI** — a warm, knowledgeable assistant that knows Mom's medications, doctors, blood pressure trends, and appointments so the whole family stays informed.
 
 ### Key Features
 

@@ -40,14 +40,14 @@ const features = [
 const steps = [
   { number: "1", title: "Get your access code", description: "A family member shares the code with you" },
   { number: "2", title: "Create your account", description: "Sign up in 30 seconds with your email" },
-  { number: "3", title: "Join the care circle", description: "Set up your family's shared care profile" },
+  { number: "3", title: "Join the care thread", description: "Set up your family's shared care profile" },
   { number: "4", title: "Start coordinating", description: "Ask Circle AI questions, log vitals, share updates" },
 ];
 
 const faqs = [
   {
     q: "Is this a medical app?",
-    a: "No — CareCircle is a family coordination tool. It helps you track and share information about a loved one's care, but it's not a substitute for medical advice.",
+    a: "No — CareThread is a family coordination tool. It helps you track and share information about a loved one's care, but it's not a substitute for medical advice.",
   },
   {
     q: "Who can see my family's data?",
@@ -59,7 +59,7 @@ const faqs = [
   },
   {
     q: "Do I need to install anything?",
-    a: "Nope — CareCircle works in any mobile or desktop browser. You can also install it as an app on your phone's home screen for a native-like experience.",
+    a: "Nope — CareThread works in any mobile or desktop browser. You can also install it as an app on your phone's home screen for a native-like experience.",
   },
   {
     q: "How do I get an access code?",
@@ -84,7 +84,7 @@ const Landing = () => {
             <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
               <Heart className="h-4 w-4 text-primary-foreground" />
             </div>
-            <span className="font-bold text-foreground text-lg">CareCircle</span>
+            <span className="font-bold text-foreground text-lg">CareThread</span>
           </div>
           <Button
             onClick={() => navigate("/auth")}
@@ -108,7 +108,7 @@ const Landing = () => {
             <span className="text-primary">"How's Mom?"</span>
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            CareCircle is the shared family journal for coordinating care. 
+            CareThread is the shared family journal for coordinating care. 
             Track medications, log vitals, manage appointments, and ask AI anything about Mom's health — all in one warm, simple app.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
@@ -211,7 +211,7 @@ const Landing = () => {
             size="lg"
             className="gradient-primary text-primary-foreground font-semibold gap-2 h-12 px-8 text-base"
           >
-            Create your care circle
+            Create your care thread
             <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
@@ -222,7 +222,7 @@ const Landing = () => {
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
             <Heart className="h-4 w-4 text-primary" />
-            <span>CareCircle</span>
+            <span>CareThread</span>
           </div>
           <div className="flex gap-6">
             <button onClick={() => navigate("/privacy")} className="hover:text-foreground transition-colors">Privacy</button>
