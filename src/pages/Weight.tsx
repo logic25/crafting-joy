@@ -44,13 +44,15 @@ const Weight = () => {
   const queryClient = useQueryClient();
 
   const handleDeleteReading = async (id: string) => {
+    // Delete associated health alerts first
+    await supabase.from("health_alerts").delete().eq("reading_id", id);
     const { error } = await supabase.from("health_readings").delete().eq("id", id);
     if (error) {
       toast({ title: "Error", description: "Failed to delete reading.", variant: "destructive" });
     } else {
       toast({ title: "Reading deleted" });
-      queryClient.invalidateQueries({ queryKey: ["health-readings"] });
-      queryClient.invalidateQueries({ queryKey: ["health-alerts"] });
+      queryClient.invalidateQueries({ queryKey: ["health_readings"] });
+      queryClient.invalidateQueries({ queryKey: ["health_alerts"] });
     }
   };
 
