@@ -5,7 +5,8 @@
  import { AppLayout } from "@/components/layout/AppLayout";
  import { caregivers, activityLog } from "@/data/mockData";
  import { formatDistanceToNow } from "date-fns";
- import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { InviteEmailSheet } from "@/components/family/InviteEmailSheet";
  
  const roleConfig = {
    admin: { label: "Admin", color: "bg-primary text-primary-foreground" },
@@ -23,12 +24,15 @@
      <AppLayout>
        <div className="space-y-6 pb-24 md:pb-6">
          {/* Header */}
-         <div>
-           <h1 className="text-2xl font-bold text-foreground">Family Members</h1>
-           <p className="text-muted-foreground">
-             {caregivers.length} caregivers coordinating care
-           </p>
-         </div>
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">Family Members</h1>
+              <p className="text-muted-foreground">
+                {caregivers.length} caregivers coordinating care
+              </p>
+            </div>
+            <InviteEmailSheet />
+          </div>
  
          {/* Family Members */}
          <div className="space-y-4">
