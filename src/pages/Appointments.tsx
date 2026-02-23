@@ -1,23 +1,40 @@
 import { useState } from "react";
-import { Calendar, List, Plus, ChevronLeft, ChevronRight, MapPin, Clock, User, AlertTriangle, HelpCircle } from "lucide-react";
+import { Calendar, List, MapPin, Clock, User, AlertTriangle, HelpCircle, ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { appointments } from "@/data/mockData";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth, addMonths, subMonths } from "date-fns";
 import { cn } from "@/lib/utils";
 import { AddAppointmentSheet } from "@/components/appointments/AddAppointmentSheet";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useCareCircle } from "@/hooks/useCareCircle";
 
 type ViewMode = "list" | "calendar";
 
 const Appointments = () => {
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const { data: circle } = useCareCircle();
+
+  const { data: appointments = [], isLoading } = useQuery({
+    queryKey: ["appointments", circle?.careCircleId],
+    enabled: !!circle?.careCircleId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("appointments")
+        .select("*")
+        .eq("care_circle_id", circle!.careCircleId)
+        .order("date_time", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const upcomingAppointments = appointments
-    .filter((apt) => apt.status === "scheduled")
-    .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime());
+    .filter((apt) => apt.status === "scheduled" && new Date(apt.date_time) >= new Date())
+    .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime());
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -26,12 +43,11 @@ const Appointments = () => {
   const paddedDays = Array(startPadding).fill(null).concat(daysInMonth);
 
   const getAppointmentsForDay = (day: Date) =>
-    appointments.filter((apt) => isSameDay(new Date(apt.dateTime), day));
+    appointments.filter((apt) => isSameDay(new Date(apt.date_time), day));
 
   return (
     <AppLayout>
       <div className="space-y-5 pb-24 md:pb-6">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Appointments</h1>
@@ -40,7 +56,6 @@ const Appointments = () => {
           <AddAppointmentSheet />
         </div>
 
-        {/* View Toggle */}
         <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
           <TabsList className="grid w-full max-w-xs grid-cols-2">
             <TabsTrigger value="list" className="gap-2">
@@ -52,12 +67,15 @@ const Appointments = () => {
           </TabsList>
         </Tabs>
 
-        {/* List View */}
         {viewMode === "list" && (
           <div className="space-y-3">
-            {upcomingAppointments.length > 0 ? (
+            {isLoading ? (
+              [1, 2].map((i) => (
+                <div key={i} className="rounded-xl border border-border bg-card p-4 shadow-card animate-pulse h-40" />
+              ))
+            ) : upcomingAppointments.length > 0 ? (
               upcomingAppointments.map((apt) => {
-                const needsCoverage = apt.coverageStatus === "needs-coverage";
+                const needsCoverage = apt.coverage_status === "needs-coverage";
                 return (
                   <div
                     key={apt.id}
@@ -67,42 +85,40 @@ const Appointments = () => {
                     )}
                   >
                     <div className="p-4">
-                      {/* Date/Time + Type Badge */}
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center gap-2 text-primary font-semibold text-sm">
                           <Calendar className="h-4 w-4" />
-                          <span>{format(apt.dateTime, "EEE, MMM d")}</span>
+                          <span>{format(new Date(apt.date_time), "EEE, MMM d")}</span>
                           <span className="text-muted-foreground font-normal">@</span>
                           <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                          <span>{format(apt.dateTime, "h:mm a")}</span>
+                          <span>{format(new Date(apt.date_time), "h:mm a")}</span>
                         </div>
                         <Badge variant="secondary" className="capitalize text-xs">
                           {apt.type.replace("-", " ")}
                         </Badge>
                       </div>
 
-                      {/* Provider */}
-                      <h3 className="font-semibold text-lg text-foreground">{apt.provider.name}</h3>
-                      <p className="text-sm text-muted-foreground">{apt.provider.specialty}</p>
-
-                      {/* Purpose */}
+                      <h3 className="font-semibold text-lg text-foreground">{apt.provider_name}</h3>
+                      {apt.provider_specialty && (
+                        <p className="text-sm text-muted-foreground">{apt.provider_specialty}</p>
+                      )}
                       <p className="text-sm text-foreground mt-2">{apt.purpose}</p>
 
-                      {/* Location */}
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
-                        <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
-                        <span>{apt.location}</span>
-                      </div>
+                      {apt.location && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
+                          <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+                          <span>{apt.location}</span>
+                        </div>
+                      )}
 
-                      {/* Questions to Ask */}
-                      {apt.questionsToAsk && apt.questionsToAsk.length > 0 && (
+                      {apt.questions_to_ask && apt.questions_to_ask.length > 0 && (
                         <div className="mt-3 pt-3 border-t border-border">
                           <div className="flex items-center gap-1.5 mb-1.5">
                             <HelpCircle className="h-3.5 w-3.5 text-primary" />
                             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Questions to Ask</p>
                           </div>
                           <ul className="space-y-1">
-                            {apt.questionsToAsk.map((q, i) => (
+                            {apt.questions_to_ask.map((q, i) => (
                               <li key={i} className="text-sm text-foreground flex items-start gap-2">
                                 <span className="text-muted-foreground mt-0.5">•</span>
                                 {q}
@@ -112,15 +128,14 @@ const Appointments = () => {
                         </div>
                       )}
 
-                      {/* Coverage */}
                       <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
-                        {apt.assignedCaregiver ? (
+                        {apt.assigned_caregiver_name ? (
                           <div className="flex items-center gap-2">
                             <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
                               <User className="h-3.5 w-3.5 text-primary" />
                             </div>
                             <div>
-                              <span className="text-sm font-medium text-foreground">{apt.assignedCaregiver.name}</span>
+                              <span className="text-sm font-medium text-foreground">{apt.assigned_caregiver_name}</span>
                               <span className="text-sm text-muted-foreground ml-1">is going</span>
                             </div>
                           </div>
@@ -130,35 +145,21 @@ const Appointments = () => {
                             <span className="text-sm font-medium">Needs someone to attend</span>
                           </div>
                         )}
-
-                        <div className="flex gap-1.5">
-                          {apt.assignedCaregiver && (
-                            <Button size="sm" variant="ghost" className="h-7 text-xs text-muted-foreground">
-                              I can't go
-                            </Button>
-                          )}
-                          {needsCoverage && (
-                            <Button size="sm" variant="outline" className="h-7 text-xs border-primary text-primary hover:bg-primary hover:text-primary-foreground">
-                              I'll go
-                            </Button>
-                          )}
-                        </div>
                       </div>
                     </div>
                   </div>
                 );
               })
             ) : (
-              <div className="text-center py-12">
-                <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="font-semibold text-lg">No upcoming appointments</h3>
-                <p className="text-muted-foreground">Add an appointment to get started</p>
+              <div className="text-center py-16">
+                <CalendarDays className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="font-semibold text-lg text-foreground">No upcoming appointments</h3>
+                <p className="text-muted-foreground mt-1">Add an appointment to get started</p>
               </div>
             )}
           </div>
         )}
 
-        {/* Calendar View */}
         {viewMode === "calendar" && (
           <div className="bg-card rounded-xl border border-border p-4 shadow-card">
             <div className="flex items-center justify-between mb-4">
@@ -186,7 +187,7 @@ const Appointments = () => {
                 const dayAppointments = getAppointmentsForDay(day);
                 const isToday = isSameDay(day, new Date());
                 const hasAppointment = dayAppointments.length > 0;
-                const needsCoverage = dayAppointments.some((a) => a.coverageStatus === "needs-coverage");
+                const needsCoverage = dayAppointments.some((a) => a.coverage_status === "needs-coverage");
 
                 return (
                   <button
