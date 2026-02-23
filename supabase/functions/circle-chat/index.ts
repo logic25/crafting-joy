@@ -13,7 +13,6 @@ const MODELS = {
   pro: "google/gemini-2.5-pro",
 };
 
-// ── Keyword classifier ───────────────────────────────────────────────
 function classifyMessage(message: string): { model: string; tier: string } {
   const lower = message.toLowerCase();
 
@@ -39,12 +38,6 @@ function classifyMessage(message: string): { model: string; tier: string } {
   }
 
   return { model: MODELS.standard, tier: "standard" };
-}
-
-// ── Detect /feedback trigger ─────────────────────────────────────────
-function extractFeedback(message: string): string | null {
-  const match = message.match(/\/feedback\s+(.+)/is);
-  return match ? match[1].trim() : null;
 }
 
 const SYSTEM_PROMPT = [
@@ -80,16 +73,15 @@ const SYSTEM_PROMPT = [
 
 const FEEDBACK_SYSTEM_PROMPT = [
   "You are Circle, the AI assistant in a family caregiving app called CareCircle.",
-  "A family member just submitted feedback or an idea using the /feedback command.",
-  "Your job is to 'stress test' the idea by:",
-  "1. Briefly acknowledging the idea warmly",
-  "2. Evaluating its feasibility within the CareCircle app",
-  "3. Playing devil's advocate — what could go wrong? What edge cases exist?",
-  "4. Suggesting how the idea could be improved or refined",
-  "5. Giving an overall verdict: 👍 Great idea, 🤔 Needs refinement, or ⚠️ Potential issues",
+  "An admin wants you to stress-test a piece of feedback or idea submitted by a family member.",
+  "Your job is to:",
+  "1. Briefly acknowledge the idea",
+  "2. Evaluate its feasibility within a caregiving coordination app",
+  "3. Play devil's advocate — what could go wrong? What edge cases exist?",
+  "4. Suggest how the idea could be improved or refined",
+  "5. Give an overall verdict: 👍 Great idea, 🤔 Needs refinement, or ⚠️ Potential issues",
   "",
   "Keep your response concise (under 200 words). Be constructive, not dismissive.",
-  "End with: '✅ I've logged this feedback for Manny to review.'",
 ].join("\n");
 
 serve(async (req) => {
@@ -98,15 +90,41 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, feedbackMode, feedbackText, userName, userId, careCircleId } = await req.json();
+    const body = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    // ── Feedback mode ──────────────────────────────────────────────
-    if (feedbackMode && feedbackText) {
-      console.log(`[feedback] From ${userName}: "${feedbackText.slice(0, 80)}"`);
+    // ── Feedback logging (just save, no AI) ────────────────────────
+    if (body.feedbackMode && body.feedbackText) {
+      console.log(`[feedback] From ${body.userName}: "${body.feedbackText.slice(0, 80)}"`);
 
-      // Get AI stress-test analysis
+      try {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+        const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        const supabaseAdmin = createClient(supabaseUrl, supabaseKey);
+
+        await supabaseAdmin.from("feedback").insert({
+          user_id: body.userId || "anonymous",
+          user_name: body.userName || "Unknown",
+          care_circle_id: body.careCircleId || null,
+          original_message: body.feedbackText,
+          status: "new",
+        });
+        console.log("[feedback] Logged to database");
+      } catch (dbErr) {
+        console.error("[feedback] DB insert error:", dbErr);
+      }
+
+      return new Response(
+        JSON.stringify({ content: `Thanks for the feedback! 📝 I've logged your idea for the admin to review.` }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ── Stress test (admin-triggered) ──────────────────────────────
+    if (body.stressTest && body.feedbackText) {
+      console.log(`[stress-test] "${body.feedbackText.slice(0, 80)}"`);
+
       const aiResponse = await fetch(
         "https://ai.gateway.lovable.dev/v1/chat/completions",
         {
@@ -119,15 +137,14 @@ serve(async (req) => {
             model: MODELS.standard,
             messages: [
               { role: "system", content: FEEDBACK_SYSTEM_PROMPT },
-              { role: "user", content: `Feedback from ${userName}: ${feedbackText}` },
+              { role: "user", content: `Feedback from ${body.userName || "a family member"}: ${body.feedbackText}` },
             ],
           }),
         }
       );
 
       if (!aiResponse.ok) {
-        const errorText = await aiResponse.text();
-        console.error("AI gateway error on feedback:", aiResponse.status, errorText);
+        console.error("AI gateway error on stress test:", aiResponse.status);
         return new Response(
           JSON.stringify({ error: "AI gateway error" }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -135,35 +152,16 @@ serve(async (req) => {
       }
 
       const aiData = await aiResponse.json();
-      const analysis = aiData.choices?.[0]?.message?.content || "I've logged your feedback.";
-
-      // Log to database
-      try {
-        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-        const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-        const supabaseAdmin = createClient(supabaseUrl, supabaseKey);
-
-        await supabaseAdmin.from("feedback").insert({
-          user_id: userId || "anonymous",
-          user_name: userName || "Unknown",
-          care_circle_id: careCircleId || null,
-          original_message: feedbackText,
-          ai_analysis: analysis,
-          status: "new",
-        });
-        console.log("[feedback] Logged to database");
-      } catch (dbErr) {
-        console.error("[feedback] DB insert error:", dbErr);
-        // Don't fail the response — still return the AI analysis
-      }
+      const analysis = aiData.choices?.[0]?.message?.content || "Unable to analyze.";
 
       return new Response(
-        JSON.stringify({ content: analysis }),
+        JSON.stringify({ analysis }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     // ── Normal chat mode ───────────────────────────────────────────
+    const { messages } = body;
     const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user");
     const { model, tier } = lastUserMsg
       ? classifyMessage(lastUserMsg.content)

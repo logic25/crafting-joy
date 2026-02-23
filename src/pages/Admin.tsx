@@ -766,8 +766,32 @@ export default function Admin() {
                       </div>
                     )}
 
-                    {/* Status actions */}
-                    <div className="flex gap-2 pt-1">
+                    {/* Actions */}
+                    <div className="flex items-center gap-2 pt-1 flex-wrap">
+                      {!item.ai_analysis && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs h-7 gap-1"
+                          onClick={async () => {
+                            const btn = document.activeElement as HTMLButtonElement;
+                            if (btn) btn.disabled = true;
+                            try {
+                              const { data, error } = await supabase.functions.invoke("circle-chat", {
+                                body: { stressTest: true, feedbackText: item.original_message, userName: item.user_name },
+                              });
+                              if (!error && data?.analysis) {
+                                await supabase.from("feedback" as any).update({ ai_analysis: data.analysis } as any).eq("id", item.id);
+                                setFeedbackItems(prev => prev.map(f => f.id === item.id ? { ...f, ai_analysis: data.analysis } : f));
+                              }
+                            } finally {
+                              if (btn) btn.disabled = false;
+                            }
+                          }}
+                        >
+                          <Brain className="h-3 w-3" /> Stress Test
+                        </Button>
+                      )}
                       {["new", "reviewed", "planned", "declined"].map((s) => (
                         <Button
                           key={s}
